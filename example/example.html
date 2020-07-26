@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <template id="app-template">
+      <div id="app" v-drag-group>
+        <div class="wrapper" v-drag-list="{data: 'list1'}">
+          <p v-drag-item="{selectable: true}">使用 directive</p>
+          <p v-for="i in count" v-drag-item="{selectable: true}">
+            测试测试测试测试测试测试测试测试
+          </p>
+        </div>
+        <div class="wrapper" @select v-drag-list="{data: 'list2'}" @drop="handleDrop">
+          <p v-drag-item="{selectable: true}">使用 component 不带 wrapper</p>
+          <p v-for="i in count" v-drag-item="{selectable: true, data: i}">
+            测试测试测试测试测试测试测试测试
+          </p>
+        </div>
+        <button @click="count++">increase</button>
+      </div>
+    </template>
+
+    <script src="../node_modules/vue/dist/vue.min.js"></script>
+    <script src="../dist/index.js"></script>
+    <script>
+      Vue.use(KbDragDrop);
+      const app = new Vue({
+        el: '#app',
+        template: '#app-template',
+        data: {
+          count: 5,
+        },
+        methods: {
+          handleDrop(event) {
+            console.log(event);
+          },
+        },
+      });
+    </script>
+  </body>
+</html>

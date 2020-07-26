@@ -1,0 +1,37 @@
+body {
+  padding: 0;
+  margin: 0;
+}
+
+#app {
+  position: relative;
+  display: flex;
+  width: 100vw;
+  padding-top: 100px;
+}
+
+.wrapper {
+  flex: 1;
+  position: relative;
+  /* height: 300px; */
+  margin: 100px auto 0;
+  border: 1px solid blue;
+  /* overflow: hidden; */
+}
+
+.wrapper > p {
+  user-select: none;
+  padding: 10px;
+  margin: 10px;
+  border: 1px solid gray;
+}
+
+.wrapper > p.kb-drag-item-selected {
+  border: 1px solid red;
+}
+
+button {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+}

@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "declaration": true, // 同时生成声明文件
+    "target": "es5",
+    "module": "esnext",
+    "importHelpers": true,
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": true
+  }
+}
