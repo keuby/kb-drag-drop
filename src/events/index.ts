@@ -1,10 +1,9 @@
-import { DragHTMLElement, DragItem, DragElement } from '../core';
+import { fromEvent, merge, Observable, Subscription } from 'rxjs';
+import { withLatestFrom, pairwise, filter, map } from 'rxjs/operators';
+import { DragHTMLElement, DragElement } from '../core';
+import { convert, convertMap, getDistance, isMoved } from './helper';
 
 type EventHander = (ev: Event) => any;
-
-export interface Subscription {
-  unsubscribe(): void;
-}
 
 export interface DragDropCallback {
   dragStart: EventHander;
@@ -33,44 +32,20 @@ export class EventManager {
   observers: LeaveEnterObserver[] = [];
 
   onClick(el: HTMLElement, callback: EventHander): Subscription {
-    let touched = false;
+    const mouseClick$ = fromEvent(el, 'touchend');
+    const touchClick$ = fromEvent<TouchEvent>(el, 'touchend').pipe(
+      withLatestFrom(fromEvent<TouchEvent>(el, 'touchstart')),
+      filter(([end, start]) => !isMoved(start as TouchEvent, end as TouchEvent)),
+      map((events) => events[1] as TouchEvent),
+    );
 
-    let handleMouseClick = (event: Event) => {
-      if (touched) {
-        touched = false;
-      } else {
-        callback(event);
-      }
-    };
-
-    let handleTouchClick = (startEvent: Event) => {
-      let timer = setTimeout(() => {
-        el.removeEventListener('touchend', touchEndHandler);
-      }, 300);
-
-      const touchEndHandler = (endEvent: Event) => {
-        if (endEvent.timeStamp - startEvent.timeStamp < 300) {
-          callback(event);
-          touched = true;
-        }
-        el.removeEventListener('touchend', touchEndHandler);
-        clearTimeout(timer);
-      };
-
-      el.addEventListener('touchend', touchEndHandler);
-    };
-
-    el.addEventListener('click', handleMouseClick);
-    el.addEventListener('touchstart', handleTouchClick);
-
-    return {
-      unsubscribe() {
-        el.removeEventListener('click', handleMouseClick);
-        el.removeEventListener('touchstart', handleTouchClick);
-        handleMouseClick = null;
-        handleTouchClick = null;
-      },
-    };
+    return merge(mouseClick$, touchClick$)
+      .pipe(
+        pairwise<MouseEvent | TouchEvent>(),
+        filter(([last, now]) => now.timeStamp - last.timeStamp > 300),
+        map((events) => events[1]),
+      )
+      .subscribe(callback);
   }
 
   onDragDrop(el: HTMLElement, callback: DragDropCallback) {
