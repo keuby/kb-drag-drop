@@ -1,9 +1,9 @@
-import { fromEvent, merge, Observable, Subscription } from 'rxjs';
+import { fromEvent, merge, Subscription } from 'rxjs';
 import { withLatestFrom, pairwise, filter, map } from 'rxjs/operators';
 import { DragHTMLElement, DragElement } from '../core';
-import { convert, convertMap, getDistance, isMoved } from './helper';
+import { isMoved } from './helper';
 
-type EventHander = (ev: Event) => any;
+export type EventHander = (ev: Event) => any;
 
 export interface DragDropCallback {
   dragStart: EventHander;
@@ -52,8 +52,8 @@ export class EventManager {
     let handleTouchDragStart = this.buildDragDropandler('touchmove', 'touchend', callback);
     let handleMouseDragStart = this.buildDragDropandler('mousemove', 'mouseup', callback);
 
-    el.addEventListener('touchstart', handleTouchDragStart);
     el.addEventListener('mousedown', handleMouseDragStart);
+    el.addEventListener('touchstart', handleTouchDragStart);
 
     return {
       unsubscribe() {
@@ -96,6 +96,7 @@ export class EventManager {
           document.addEventListener(move, moveHandler);
         }
       };
+
       const moveHandler = (moveEvent: MouseEvent) => {
         if (this.dragging) {
           moveEvent = this.buildMouseEvent(moveEvent);
@@ -103,6 +104,7 @@ export class EventManager {
           this.emitLeaveEnter(moveEvent);
         }
       };
+
       const endHandler = (endEvent: MouseEvent) => {
         endEvent = this.buildMouseEvent(endEvent);
         if (this.dragging) {
