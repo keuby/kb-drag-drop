@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "declaration": true, // 同时生成声明文件
     "target": "es5",
     "module": "esnext",
@@ -8,6 +9,11 @@
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "paths": {
+      "core": ["src/core"],
+      "core/*": ["src/core/*"],
+      "shared/*": ["src/shared/*"]
+    }
   }
 }

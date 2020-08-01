@@ -1,8 +1,10 @@
 import { Vue } from 'vue/types/vue';
-import { DRAG_ITEM_ATTR_NAME, DragElement, DragHTMLElement, DRAG_CLASS_PREFIX } from './shared';
-import { Subscription } from '../events';
+import { DRAG_ITEM_ATTR_NAME, DRAG_CLASS_PREFIX } from 'shared/constants';
 import { DragList } from './drag-list';
 import { buildDropEvent } from '../events/drag-event';
+import { DragElement } from '../drag-element';
+import { Subscription } from 'rxjs';
+import { DragHTMLElement } from 'shared/types';
 
 const SELECTED_CLASS = DRAG_CLASS_PREFIX + '-item-selected';
 const DRAGGING_CLASS = DRAG_CLASS_PREFIX + '-item-dragging';

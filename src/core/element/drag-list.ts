@@ -1,8 +1,9 @@
 import { Vue } from 'vue/types/vue';
+import { Subscription } from 'rxjs';
 import { DragItem } from './drag-item';
-import { DRAG_LIST_ATTR_NAME, DRAG_ITEM_ATTR_NAME, DragCollection, DragHTMLElement } from './shared';
-import { Subscription } from '../events';
-import { DRAG_CLASS_PREFIX } from './shared';
+import { DRAG_CLASS_PREFIX, DRAG_LIST_ATTR_NAME, DRAG_ITEM_ATTR_NAME } from 'shared/constants';
+import { DragCollection } from 'core/drag-element';
+import { DragHTMLElement } from 'shared/types';
 
 const DRAG_ENTERED_CLS = DRAG_CLASS_PREFIX + '-entered';
 
@@ -23,11 +24,9 @@ export class DragList extends DragCollection<DragItem> {
     this.subscriptions.push(
       manager.onLeaveEnter(this.el, {
         dragEnter: () => {
-          console.log('entered');
           this.el.classList.add(DRAG_ENTERED_CLS);
         },
         dragLeave: () => {
-          console.log('leaved');
           this.el.classList.remove(DRAG_ENTERED_CLS);
         },
       }),

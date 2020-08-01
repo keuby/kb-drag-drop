@@ -29,5 +29,9 @@
     "rollup-plugin-typescript2": "^0.27.1",
     "typescript": "^3.9.7",
     "vue": "^2.6.11"
+  },
+  "dependencies": {
+    "hammerjs": "^2.0.8",
+    "rxjs": "^6.6.2"
   }
 }
