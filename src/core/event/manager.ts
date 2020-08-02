@@ -1,5 +1,6 @@
 import { ComputeRecord } from 'shared/types';
 import { DragElement } from 'core/drag-element';
+import { DragItem } from 'core/element/drag-item';
 
 export class LeaveEnterRecord<T extends DragElement> {
   instance: T;
@@ -30,9 +31,9 @@ export class EventManager {
     this.enteredObserverRecord = null;
   }
 
-  emitDragStart(element: DragElement) {}
-  emitDragMove(element: DragElement) {}
-  emitDragEnd(element: DragElement) {}
+  emitDragStart(els: DragItem[], selectable: boolean) {}
+  emitDragMove(event: HammerInput) {}
+  emitDragEnd() {}
 
   addObserver<T extends DragElement>(ins: T, record: ComputeRecord) {
     const records = this.observerRecords;

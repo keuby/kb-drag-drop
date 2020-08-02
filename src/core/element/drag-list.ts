@@ -5,7 +5,7 @@ import { DragCollection } from 'core/drag-element';
 import { DragHTMLElement } from 'shared/types';
 import { DragGroup } from './drag-group';
 
-const DRAG_ENTERED_CLS = DRAG_CLASS_PREFIX + '-entered';
+export const DRAG_ENTERED_CLS = DRAG_CLASS_PREFIX + '-entered';
 
 export class DragList extends DragCollection<DragItem> {
   groupName: string;

@@ -4,9 +4,9 @@ import { DragHTMLElement } from 'shared/types';
 import { DRAG_ITEM_ATTR_NAME, DRAG_CLASS_PREFIX } from 'shared/constants';
 import { EventListener, Listen, Manager, EventManager } from 'core/event';
 
-const SELECTED_CLASS = DRAG_CLASS_PREFIX + '-item-selected';
-const DRAGGING_CLASS = DRAG_CLASS_PREFIX + '-item-dragging';
-const INSERTED_CLASS = DRAG_CLASS_PREFIX + '-item-inserted';
+export const SELECTED_CLASS = DRAG_CLASS_PREFIX + '-item-selected';
+export const DRAGGING_CLASS = DRAG_CLASS_PREFIX + '-item-dragging';
+export const INSERTED_CLASS = DRAG_CLASS_PREFIX + '-item-inserted';
 
 @EventListener
 export class DragItem extends DragElement {
@@ -15,6 +15,7 @@ export class DragItem extends DragElement {
 
   startPoint: HammerPoint;
   wrapperEl: HTMLElement;
+  draggingItems: DragItem[];
   draggingNodes: DragHTMLElement<DragItem>[];
 
   @Manager manager: EventManager;
@@ -72,10 +73,10 @@ export class DragItem extends DragElement {
   @Listen('dragstart') handleDragStart(event: HammerInput) {
     if (this.selectable) {
       if (!this.selected) this.selected = true;
-      this.draggingNodes = this.dragList.items
-        .filter((item) => item.selected)
-        .map((item) => this.genDraggingNode(item));
+      this.draggingItems = this.dragList.items.filter((item) => item.selected);
+      this.draggingNodes = this.draggingItems.map((item) => this.genDraggingNode(item));
     } else {
+      this.draggingItems = [this];
       this.draggingNodes = [this.genDraggingNode(this)];
     }
     this.renderDraggingNodes();
@@ -104,12 +105,9 @@ export class DragItem extends DragElement {
 
     const cloned = item.el.cloneNode(true) as DragHTMLElement<DragItem>;
     cloned.instance = item;
-    cloned.style.position = 'fixed';
+    cloned.classList.add(INSERTED_CLASS);
     cloned.style.left = `${rect.left}px`;
     cloned.style.top = `${rect.top}px`;
-    cloned.style.margin = '0';
-    cloned.style.boxShadow =
-      '0 5px 5px -3px rgba(0, 0, 0, 0.2), 0 8px 10px 1px rgba(0, 0, 0, 0.14), 0 3px 14px 2px rgba(0, 0, 0, 0.12)';
     return cloned;
   }
 

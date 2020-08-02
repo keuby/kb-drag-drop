@@ -41,11 +41,11 @@
       return this.instance;
     };
 
-    EventManager.prototype.emitDragStart = function (element) {};
+    EventManager.prototype.emitDragStart = function (els, selectable) {};
 
-    EventManager.prototype.emitDragMove = function (element) {};
+    EventManager.prototype.emitDragMove = function (event) {};
 
-    EventManager.prototype.emitDragEnd = function (element) {};
+    EventManager.prototype.emitDragEnd = function () {};
 
     EventManager.prototype.addObserver = function (ins, record) {
       var records = this.observerRecords;
@@ -328,6 +328,8 @@
   }(DragCollection);
 
   var SELECTED_CLASS = DRAG_CLASS_PREFIX + '-item-selected';
+  var DRAGGING_CLASS = DRAG_CLASS_PREFIX + '-item-dragging';
+  var INSERTED_CLASS = DRAG_CLASS_PREFIX + '-item-inserted';
 
   var DragItem =
   /** @class */
@@ -403,22 +405,20 @@
 
       if (this.selectable) {
         if (!this.selected) this.selected = true;
-        this.draggingNodes = this.dragList.items.filter(function (item) {
+        this.draggingItems = this.dragList.items.filter(function (item) {
           return item.selected;
-        }).map(function (item) {
+        });
+        this.draggingNodes = this.draggingItems.map(function (item) {
           return _this.genDraggingNode(item);
         });
       } else {
+        this.draggingItems = [this];
         this.draggingNodes = [this.genDraggingNode(this)];
       }
 
       this.renderDraggingNodes();
       this.startPoint = event.center;
       event.preventDefault();
-    };
-
-    DragItem.prototype.handleDragCancel = function (event) {
-      console.log('cancel', event);
     };
 
     DragItem.prototype.handleDragMove = function (event) {
@@ -441,15 +441,16 @@
       var rect = origin.getBoundingClientRect();
       var cloned = item.el.cloneNode(true);
       cloned.instance = item;
-      cloned.style.position = 'fixed';
+      cloned.classList.add(INSERTED_CLASS);
       cloned.style.left = rect.left + "px";
       cloned.style.top = rect.top + "px";
-      cloned.style.margin = '0';
-      cloned.style.boxShadow = '0 5px 5px -3px rgba(0, 0, 0, 0.2), 0 8px 10px 1px rgba(0, 0, 0, 0.14), 0 3px 14px 2px rgba(0, 0, 0, 0.12)';
       return cloned;
     };
 
     DragItem.prototype.renderDraggingNodes = function () {
+      this.draggingNodes.forEach(function (node) {
+        node.instance.el.classList.add(DRAGGING_CLASS);
+      });
       var fragment = document.createDocumentFragment();
       fragment.append.apply(fragment, this.draggingNodes);
       document.body.append(fragment);
@@ -457,7 +458,8 @@
 
     DragItem.prototype.disposeDraggingNodes = function () {
       this.draggingNodes.forEach(function (node) {
-        return node.remove();
+        node.instance.el.classList.remove(DRAGGING_CLASS);
+        node.remove();
       });
       this.draggingNodes = null;
     };
@@ -467,8 +469,6 @@
     __decorate([Listen('click')], DragItem.prototype, "handleClick", null);
 
     __decorate([Listen('dragstart')], DragItem.prototype, "handleDragStart", null);
-
-    __decorate([Listen('dragcancel')], DragItem.prototype, "handleDragCancel", null);
 
     __decorate([Listen('dragmove')], DragItem.prototype, "handleDragMove", null);
 
@@ -558,6 +558,9 @@
     Vue.directive('drag-group', new DragGroupDirective());
     Vue.directive('drag-item', new DragItemDirective());
     Vue.directive('drag-list', new DragListDirective());
+    var sheet = document.createElement('style');
+    sheet.innerHTML = "\n    ." + INSERTED_CLASS + " {\n      position: fixed;\n      margin: 0;\n      box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2), 0 8px 10px 1px rgba(0, 0, 0, 0.14), 0 3px 14px 2px rgba(0, 0, 0, 0.12);\n    }\n\n    ." + DRAGGING_CLASS + " {\n      opacity: 0;\n    }\n  ";
+    document.head.appendChild(sheet);
   }
 
   return index;
