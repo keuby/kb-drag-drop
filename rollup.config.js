@@ -19,4 +19,5 @@ export default {
       extensions,
     }),
   ],
+  external: ['hammerjs'],
 };

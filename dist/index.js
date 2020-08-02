@@ -1,638 +1,565 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-    typeof define === 'function' && define.amd ? define(factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.KbDragDrop = factory());
-}(this, (function () { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('hammerjs')) :
+  typeof define === 'function' && define.amd ? define(['hammerjs'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.KbDragDrop = factory(global.Hammer));
+}(this, (function (Hammer) { 'use strict';
 
-    /*! *****************************************************************************
-    Copyright (c) Microsoft Corporation.
+  Hammer = Hammer && Object.prototype.hasOwnProperty.call(Hammer, 'default') ? Hammer['default'] : Hammer;
 
-    Permission to use, copy, modify, and/or distribute this software for any
-    purpose with or without fee is hereby granted.
+  var DRAG_ITEM_ATTR_NAME = 'kb-drag-item';
+  var DRAG_LIST_ATTR_NAME = 'kb-drag-list';
+  var DRAG_CLASS_PREFIX = 'kb-drag';
+  var EVENT_MAP = {
+    click: 'tap',
+    dragstart: 'panstart',
+    dragmove: 'panmove',
+    dragend: 'panend',
+    dragcancel: 'pancancel'
+  };
 
-    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-    REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-    AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-    INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-    LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-    OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-    PERFORMANCE OF THIS SOFTWARE.
-    ***************************************************************************** */
-    /* global Reflect, Promise */
+  var LeaveEnterRecord =
+  /** @class */
+  function () {
+    function LeaveEnterRecord(ins, record) {
+      this.instance = ins;
+      this.record = record;
+    }
 
-    var extendStatics = function(d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
+    return LeaveEnterRecord;
+  }();
+
+  var EventManager =
+  /** @class */
+  function () {
+    function EventManager() {
+      this.dragging = false;
+      this.observerRecords = [];
+      this.enteredObserverRecord = null;
+    }
+
+    EventManager.getInstance = function () {
+      return this.instance;
     };
 
-    function __extends(d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    EventManager.prototype.emitDragStart = function (element) {};
+
+    EventManager.prototype.emitDragMove = function (element) {};
+
+    EventManager.prototype.emitDragEnd = function (element) {};
+
+    EventManager.prototype.addObserver = function (ins, record) {
+      var records = this.observerRecords;
+      if (records.some(function (_a) {
+        var instance = _a.instance;
+        return instance === ins;
+      })) return;
+      var oberverRecord = new LeaveEnterRecord(ins, record);
+      records.push(oberverRecord);
+    };
+
+    EventManager.instance = new EventManager();
+    return EventManager;
+  }();
+
+  function mixinManagerInterface(constructor) {
+    var record = constructor.__record__;
+    var compute = constructor.__compute__;
+
+    constructor.prototype.__init__ = function () {
+      var _this = this;
+
+      if (this.el == null) return;
+
+      if (record != null) {
+        this.__manager__ = new Hammer(this.el);
+        var events = Object.keys(record).join(' ');
+
+        this.__manager__.on(events, function (event) {
+          var handler = record[event.type];
+
+          _this[handler](event);
+        });
+      }
+
+      if (compute != null) {
+        var manager = EventManager.getInstance();
+        manager.addObserver(this, compute);
+      }
+    };
+
+    constructor.prototype.__dispose__ = function () {
+      if (this.__manager__ != null) {
+        this.__manager__.destroy();
+
+        this.__manager__ = null;
+      }
+    };
+  }
+  function addListener(constructor, event, handler) {
+    var record = null;
+
+    if (event in EVENT_MAP) {
+      event = EVENT_MAP[event];
+      record = constructor.__record__ || (constructor.__record__ = {});
+      record[event] = handler;
+    } else {
+      record = constructor.__compute__ || (constructor.__compute__ = {});
+      record[event] = handler;
+    }
+  }
+  function initListener(instance) {
+    if (typeof instance.__init__ === 'function') {
+      instance.__init__();
+    }
+  }
+  function disposeListener(instance) {
+    if (typeof instance.__dispose__ === 'function') {
+      instance.__dispose__();
+    }
+  }
+
+  function EventListener(constructor) {
+    mixinManagerInterface(constructor);
+  }
+  function Listen(event) {
+    return function (target, prop) {
+      var constructor = target.constructor;
+      addListener(constructor, event, prop);
+    };
+  }
+  function Manager(target, prop) {
+    Object.defineProperty(target, prop, {
+      get: function () {
+        return EventManager.getInstance();
+      }
+    });
+  }
+
+  /*! *****************************************************************************
+  Copyright (c) Microsoft Corporation.
+
+  Permission to use, copy, modify, and/or distribute this software for any
+  purpose with or without fee is hereby granted.
+
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+  REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+  AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+  INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+  LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+  PERFORMANCE OF THIS SOFTWARE.
+  ***************************************************************************** */
+  /* global Reflect, Promise */
+
+  var extendStatics = function(d, b) {
+      extendStatics = Object.setPrototypeOf ||
+          ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+          function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+      return extendStatics(d, b);
+  };
+
+  function __extends(d, b) {
+      extendStatics(d, b);
+      function __() { this.constructor = d; }
+      d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  }
+
+  function __decorate(decorators, target, key, desc) {
+      var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+      if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+      else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+      return c > 3 && r && Object.defineProperty(target, key, r), r;
+  }
+
+  var DragElement =
+  /** @class */
+  function () {
+    function DragElement(el) {
+      this.el = el;
     }
 
-    var DRAG_ITEM_ATTR_NAME = 'kb-drag-item';
-    var DRAG_GROUP_ATTR_NAME = 'kb-drag-group';
-    var DRAG_LIST_ATTR_NAME = 'kb-drag-list';
-    var DRAG_CLASS_PREFIX = 'kb-drag';
+    DragElement.prototype.noticeDirty = function (Clazz) {
+      var instance = this.search(Clazz);
+      instance && instance.makeDirty();
+    };
 
-    var DragElement =
-    /** @class */
-    function () {
-      function DragElement(el, vm, data) {
-        this.el = el;
-        this.vm = vm;
-        this.data = data;
-      }
+    DragElement.prototype.search = function (Clazz) {
+      var el = this.el.parentElement;
 
-      DragElement.prototype.setData = function (data) {
-        this.data = data;
-      };
-
-      DragElement.prototype.noticeDirty = function (Clazz) {
-        var instance = this.search(Clazz);
-        instance && instance.makeDirty();
-      };
-
-      Object.defineProperty(DragElement.prototype, "eventManater", {
-        get: function () {
-          return this.vm.$dragDropEventManager;
-        },
-        enumerable: false,
-        configurable: true
-      });
-
-      DragElement.prototype.search = function (Clazz) {
-        for (var el = this.el.parentElement; el != null; el = el.parentElement) {
-          var instance = el.instance;
-
-          if (instance instanceof Clazz) {
-            return instance;
-          }
-        }
-      };
-
-      return DragElement;
-    }();
-
-    var DragCollection =
-    /** @class */
-    function (_super) {
-      __extends(DragCollection, _super);
-
-      function DragCollection() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-
-        _this.dirty = true;
-        return _this;
-      }
-
-      Object.defineProperty(DragCollection.prototype, "items", {
-        get: function () {
-          if (this.dirty) {
-            var itemList = [];
-
-            for (var i = 0; i < this.collection.length; i++) {
-              var item = this.collection[i];
-              itemList.push(item.instance);
-            }
-
-            this._items = itemList;
-          }
-
-          return this._items;
-        },
-        enumerable: false,
-        configurable: true
-      });
-
-      DragCollection.prototype.makeDirty = function () {
-        this.dirty = true;
-      };
-
-      return DragCollection;
-    }(DragElement);
-
-    var DragGroup =
-    /** @class */
-    function (_super) {
-      __extends(DragGroup, _super);
-
-      function DragGroup(el, data, vm) {
-        var _this = _super.call(this, el, vm, data) || this;
-
-        _this.el.setAttribute(DRAG_GROUP_ATTR_NAME, '');
-
-        return _this;
-      }
-
-      DragGroup.prototype.collect = function () {
-        this.collection = this.el.querySelectorAll("[" + DRAG_LIST_ATTR_NAME + "]");
-      };
-
-      DragGroup.prototype.destory = function () {};
-
-      return DragGroup;
-    }(DragCollection);
-
-    var DragGroupDirective =
-    /** @class */
-    function () {
-      function DragGroupDirective() {}
-
-      DragGroupDirective.prototype.bind = function (el, binding, vnode, oldVnode) {
-        el.instance = new DragGroup(el, vnode.context, binding.value);
-      };
-
-      DragGroupDirective.prototype.inserted = function (el, binding, vnode, oldVnode) {
+      while (el != null) {
         var instance = el.instance;
-        instance.collect();
-      };
 
-      DragGroupDirective.prototype.unbind = function (el, binding, vnode, oldVnode) {
-        el.instance.destory();
-        el.instance = null;
-      };
-
-      return DragGroupDirective;
-    }();
-
-    var DRAG_ENTERED_CLS = DRAG_CLASS_PREFIX + '-entered';
-
-    var DragList =
-    /** @class */
-    function (_super) {
-      __extends(DragList, _super);
-
-      function DragList(el, vm, data) {
-        var _this = _super.call(this, el, vm, data) || this;
-
-        _this.subscriptions = [];
-
-        _this.el.setAttribute(DRAG_LIST_ATTR_NAME, '');
-
-        return _this;
+        if (instance != null && instance instanceof Clazz) {
+          return instance;
+        }
       }
 
-      DragList.prototype.collect = function () {
-        this.collection = this.el.querySelectorAll("[" + DRAG_ITEM_ATTR_NAME + "]");
-      };
+      return null;
+    };
 
-      DragList.prototype.init = function () {
-        var _this = this;
+    return DragElement;
+  }();
 
-        var manager = this.eventManater;
-        this.subscriptions.push(manager.onLeaveEnter(this.el, {
-          dragEnter: function () {
-            console.log('entered');
+  var DragCollection =
+  /** @class */
+  function (_super) {
+    __extends(DragCollection, _super);
 
-            _this.el.classList.add(DRAG_ENTERED_CLS);
-          },
-          dragLeave: function () {
-            console.log('leaved');
+    function DragCollection() {
+      var _this = _super !== null && _super.apply(this, arguments) || this;
 
-            _this.el.classList.remove(DRAG_ENTERED_CLS);
-          }
-        }));
-      };
-
-      DragList.prototype.destory = function () {};
-
-      return DragList;
-    }(DragCollection);
-
-    function buildDropEvent(event, data) {
-      var dropEvent = new MouseEvent('drop', event);
-      dropEvent.data = data;
-      return dropEvent;
+      _this.dirty = true;
+      return _this;
     }
 
-    var SELECTED_CLASS = DRAG_CLASS_PREFIX + '-item-selected';
-
-    var DragItem =
-    /** @class */
-    function (_super) {
-      __extends(DragItem, _super);
-
-      function DragItem(el, vm, options) {
-        var _this = _super.call(this, el, vm, options === null || options === void 0 ? void 0 : options.data) || this;
-
-        _this.subscriptions = [];
-        _this.draggingNodes = [];
-
-        _this.el.setAttribute(DRAG_ITEM_ATTR_NAME, '');
-
-        _this.selectable = !!(options === null || options === void 0 ? void 0 : options.selectable);
-        return _this;
-      }
-
-      Object.defineProperty(DragItem.prototype, "selected", {
-        get: function () {
-          return this.el.classList.contains(SELECTED_CLASS);
-        },
-        set: function (value) {
-          if (value) {
-            this.el.classList.add(SELECTED_CLASS);
-          } else {
-            this.el.classList.remove(SELECTED_CLASS);
-          }
-        },
-        enumerable: false,
-        configurable: true
-      });
-      Object.defineProperty(DragItem.prototype, "dragList", {
-        get: function () {
-          if (this._dragList == null) {
-            this._dragList = this.search(DragList);
-          }
-
-          return this._dragList;
-        },
-        enumerable: false,
-        configurable: true
-      });
-
-      DragItem.prototype.addDraggingNodes = function (node) {
-        this.draggingNodes.push(node);
-        node.selected = true;
-        node.el.style.zIndex = '1000';
-      };
-
-      DragItem.prototype.clearDraggingNodes = function () {
-        this.draggingNodes.forEach(function (node) {
-          node.selected = false;
-          node.el.style.transform = '';
-          node.el.style.zIndex = '';
-        });
-        this.draggingNodes = [];
-      };
-
-      DragItem.prototype.init = function () {
-        var _this = this;
-
-        var eventManager = this.eventManater;
-
-        if (this.selectable) {
-          var clickSub = eventManager.onClick(this.el, function (event) {
-            _this.handleSelect(event);
-          });
-          this.subscriptions.push(clickSub);
+    Object.defineProperty(DragCollection.prototype, "items", {
+      get: function () {
+        if (this.dirty) {
+          this.initItems();
         }
 
-        var dragDropSub = eventManager.onDragDrop(this.el, {
-          dragStart: function (event) {
-            if (_this.selectable) {
-              _this.dragList.items.filter(function (item) {
-                return item.selected;
-              }).forEach(function (item) {
-                return _this.addDraggingNodes(item);
-              });
+        return this._items;
+      },
+      enumerable: false,
+      configurable: true
+    });
 
-              if (!_this.selected) {
-                _this.addDraggingNodes(_this);
-              }
-            } else {
-              _this.addDraggingNodes(_this);
-            }
+    DragCollection.prototype.makeDirty = function () {
+      this.dirty = true;
+    };
 
-            _this.startPoint = [event.clientX, event.clientY];
-          },
-          dragMove: function (event) {
-            var clientX = event.clientX,
-                clientY = event.clientY;
-            var currentPoint = [clientX, clientY];
+    DragCollection.prototype.initItems = function () {
+      var itemList = [];
 
-            _this.draggingNodes.forEach(function (node) {
-              _this.transformDragItem(_this.startPoint, currentPoint, node);
-            });
-          },
-          dragEnd: function (event) {
-            if (_this.eventManater.enteredObserver != null) {
-              var toDragHTMLElement = _this.eventManater.enteredObserver.el;
-              var fromList = _this.dragList;
-              var toList = toDragHTMLElement.instance;
-              var itemData = _this.selectable ? _this.draggingNodes.map(function (node) {
-                return node.data;
-              }) : _this.draggingNodes[0].data;
-              var dropEvent = buildDropEvent(event, {
-                item: itemData,
-                from: _this.dragList.data,
-                to: toList.data
-              });
-              fromList.el.dispatchEvent(dropEvent);
-            }
-
-            _this.clearDraggingNodes();
-          }
-        });
-        this.subscriptions.push(dragDropSub);
-      };
-
-      DragItem.prototype.handleSelect = function (event) {
-        if (!this.selectable) return;
-
-        if (event.metaKey || event.ctrlKey) {
-          this.selected = true;
-        } else {
-          this.dragList.items.forEach(function (node) {
-            node.selected = false;
-          });
-          this.selected = true;
-        }
-
-        console.log('click');
-      };
-
-      DragItem.prototype.destory = function () {
-        if (this.subscriptions && this.subscriptions.length > 0) {
-          this.subscriptions.forEach(function (sub) {
-            return sub.unsubscribe();
-          });
-        }
-      };
-
-      DragItem.prototype.transformDragItem = function (start, current, item) {
-        var deltaX = current[0] - start[0];
-        var deltaY = current[1] - start[1];
-        item.el.style.transform = "translate(" + deltaX + "px, " + deltaY + "px)";
-      };
-
-      return DragItem;
-    }(DragElement);
-
-    var DragItemDirective =
-    /** @class */
-    function () {
-      function DragItemDirective() {}
-
-      DragItemDirective.prototype.bind = function (el, binding, vnode, oldVnode) {
-        el.instance = new DragItem(el, vnode.context, binding.value);
-      };
-
-      DragItemDirective.prototype.inserted = function (el, binding, vnode, oldVnode) {
-        var _a, _b;
-
-        (_a = el.instance) === null || _a === void 0 ? void 0 : _a.noticeDirty(DragList);
-        (_b = el.instance) === null || _b === void 0 ? void 0 : _b.init();
-      };
-
-      DragItemDirective.prototype.unbind = function (el, binding, vnode, oldVnode) {
-        var _a;
-
-        (_a = el.instance) === null || _a === void 0 ? void 0 : _a.destory();
-        el.instance = null;
-      };
-
-      return DragItemDirective;
-    }();
-
-    var DragListDirective =
-    /** @class */
-    function () {
-      function DragListDirective() {}
-
-      DragListDirective.prototype.bind = function (el, binding, vnode, oldVnode) {
-        el.instance = new DragList(el, vnode.context, binding.value);
-      };
-
-      DragListDirective.prototype.inserted = function (el, binding, vnode, oldVnode) {
-        var instance = el.instance;
-        instance.collect();
-        instance.noticeDirty(DragGroup);
-        instance.init();
-      };
-
-      DragListDirective.prototype.unbind = function (el, binding, vnode, oldVnode) {
-        el.instance.destory;
-        el.instance = null;
-      };
-
-      return DragListDirective;
-    }();
-
-    var LeaveEnterObserver =
-    /** @class */
-    function () {
-      function LeaveEnterObserver(el, enter, leave) {
-        this.el = el;
-        this.enter = enter;
-        this.leave = leave;
+      for (var i = 0; i < this.collection.length; i++) {
+        var item = this.collection[i];
+        itemList.push(item.instance);
       }
 
-      LeaveEnterObserver.prototype.isEntered = function (event) {
-        var clientX = event.clientX,
-            clientY = event.clientY;
+      this._items = itemList;
+      this.dirty = false;
+    };
 
-        var _a = this.el.getBoundingClientRect(),
-            left = _a.left,
-            right = _a.right,
-            top = _a.top,
-            bottom = _a.bottom;
+    return DragCollection;
+  }(DragElement);
 
-        return left < clientX && right > clientX && top < clientY && bottom > clientY;
-      };
+  var groupNameGenerator = {
+    id: 0,
+    getGroupId: function () {
+      return "kb-drag-group-" + this.id++;
+    }
+  };
 
-      return LeaveEnterObserver;
-    }();
+  var DragGroup =
+  /** @class */
+  function (_super) {
+    __extends(DragGroup, _super);
 
-    var EventManager =
-    /** @class */
-    function () {
-      function EventManager() {
-        this.dragging = false;
-        this.observers = [];
+    function DragGroup() {
+      var _this = _super !== null && _super.apply(this, arguments) || this;
+
+      _this.name = groupNameGenerator.getGroupId();
+      return _this;
+    }
+
+    DragGroup.prototype.collect = function () {
+      this.collection = this.el.querySelectorAll("[" + DRAG_LIST_ATTR_NAME + "]");
+      this.initItems();
+    };
+
+    DragGroup.prototype.initItems = function () {
+      _super.prototype.initItems.call(this);
+
+      for (var _i = 0, _a = this.items; _i < _a.length; _i++) {
+        var item = _a[_i];
+        item.setGroupInstance(this);
       }
+    };
 
-      EventManager.prototype.onClick = function (el, callback) {
-        var touched = false;
+    DragGroup.prototype.destory = function () {};
 
-        var handleMouseClick = function (event) {
-          if (touched) {
-            touched = false;
-          } else {
-            callback(event);
-          }
-        };
+    return DragGroup;
+  }(DragCollection);
 
-        var handleTouchClick = function (startEvent) {
-          var timer = setTimeout(function () {
-            el.removeEventListener('touchend', touchEndHandler);
-          }, 300);
+  var DragList =
+  /** @class */
+  function (_super) {
+    __extends(DragList, _super);
 
-          var touchEndHandler = function (endEvent) {
-            if (endEvent.timeStamp - startEvent.timeStamp < 300) {
-              callback(event);
-              touched = true;
-            }
+    function DragList(el) {
+      var _this = _super.call(this, el) || this;
 
-            el.removeEventListener('touchend', touchEndHandler);
-            clearTimeout(timer);
-          };
+      _this.el.setAttribute(DRAG_LIST_ATTR_NAME, '');
 
-          el.addEventListener('touchend', touchEndHandler);
-        };
+      return _this;
+    }
 
-        el.addEventListener('click', handleMouseClick);
-        el.addEventListener('touchstart', handleTouchClick);
-        return {
-          unsubscribe: function () {
-            el.removeEventListener('click', handleMouseClick);
-            el.removeEventListener('touchstart', handleTouchClick);
-            handleMouseClick = null;
-            handleTouchClick = null;
-          }
-        };
-      };
+    Object.defineProperty(DragList.prototype, "group", {
+      get: function () {
+        if (this.groupName != null) {
+          return this.groupName;
+        } else if (this.dragListGroup != null) {
+          return this.dragListGroup.name;
+        }
+      },
+      enumerable: false,
+      configurable: true
+    });
 
-      EventManager.prototype.onDragDrop = function (el, callback) {
-        var handleTouchDragStart = this.buildDragDropandler('touchmove', 'touchend', callback);
-        var handleMouseDragStart = this.buildDragDropandler('mousemove', 'mouseup', callback);
-        el.addEventListener('touchstart', handleTouchDragStart);
-        el.addEventListener('mousedown', handleMouseDragStart);
-        return {
-          unsubscribe: function () {
-            el.removeEventListener('touchstart', handleTouchDragStart);
-            el.removeEventListener('mousedown', handleMouseDragStart);
-            handleTouchDragStart = null;
-            handleMouseDragStart = null;
-          }
-        };
-      };
+    DragList.prototype.setGroupInstance = function (ins) {
+      this.dragListGroup = ins;
+    };
 
-      EventManager.prototype.onLeaveEnter = function (el, callback) {
-        var _this = this;
+    DragList.prototype.collect = function () {
+      this.collection = this.el.querySelectorAll("[" + DRAG_ITEM_ATTR_NAME + "]");
+      this.initItems();
+    };
 
-        var observer = new LeaveEnterObserver(el, callback.dragEnter, callback.dragLeave);
-        this.observers.push(observer);
-        return {
-          unsubscribe: function () {
-            for (var i = 0; i < _this.observers.length; i++) {
-              var ob = _this.observers[i];
+    DragList.prototype.initItems = function () {
+      _super.prototype.initItems.call(this);
 
-              if (ob === observer) {
-                _this.observers.splice(i, 1);
+      for (var _i = 0, _a = this.items; _i < _a.length; _i++) {
+        var item = _a[_i];
+        item.setDragList(this);
+      }
+    };
 
-                break;
-              }
-            }
-          }
-        };
-      };
+    return DragList;
+  }(DragCollection);
 
-      EventManager.prototype.buildDragDropandler = function (move, end, callback) {
-        var _this = this;
+  var SELECTED_CLASS = DRAG_CLASS_PREFIX + '-item-selected';
 
-        return function (startEvent) {
-          startEvent = _this.buildMouseEvent(startEvent);
+  var DragItem =
+  /** @class */
+  function (_super) {
+    __extends(DragItem, _super);
 
-          var startHandler = function (moveEvent) {
-            moveEvent = _this.buildMouseEvent(moveEvent);
+    function DragItem(el) {
+      var _this = _super.call(this, el) || this;
 
-            if (Math.pow(moveEvent.clientX - startEvent.clientX, 2) + Math.pow(moveEvent.clientY - startEvent.clientY, 2) > 30) {
-              callback.dragStart(startEvent);
-              _this.dragging = true;
-              document.removeEventListener(move, startHandler);
-              document.addEventListener(move, moveHandler);
-            }
-          };
+      _this.el.setAttribute(DRAG_ITEM_ATTR_NAME, '');
 
-          var moveHandler = function (moveEvent) {
-            if (_this.dragging) {
-              moveEvent = _this.buildMouseEvent(moveEvent);
-              callback.dragMove(moveEvent);
+      return _this;
+    }
 
-              _this.emitLeaveEnter(moveEvent);
-            }
-          };
-
-          var endHandler = function (endEvent) {
-            endEvent = _this.buildMouseEvent(endEvent);
-
-            if (_this.dragging) {
-              callback.dragEnd(endEvent);
-              _this.dragging = false;
-            } else {
-              document.removeEventListener(move, startHandler);
-            }
-
-            if (_this.enteredObserver != null) {
-              _this.enteredObserver.leave(endEvent);
-
-              _this.enteredObserver = null;
-            }
-
-            document.removeEventListener(move, startHandler);
-            document.removeEventListener(end, endHandler);
-          };
-
-          document.addEventListener(move, startHandler); // document.addEventListener(move, moveHandler);
-
-          document.addEventListener(end, endHandler);
-        };
-      };
-
-      EventManager.prototype.findEnteredObserver = function (event) {
-        for (var _i = 0, _a = this.observers; _i < _a.length; _i++) {
-          var observer = _a[_i];
-
-          if (observer.isEntered(event)) {
-            return observer;
-          }
+    Object.defineProperty(DragItem.prototype, "group", {
+      get: function () {
+        if (this.dragList != null) {
+          return this.dragList.group;
         }
 
         return null;
-      };
-
-      EventManager.prototype.emitLeaveEnter = function (event) {
-        var observer = this.findEnteredObserver(event);
-
-        if (this.enteredObserver != null) {
-          if (observer == null) {
-            this.enteredObserver.leave(event);
-            this.enteredObserver = null;
-          } else if (observer !== this.enteredObserver) {
-            this.enteredObserver.leave(event);
-            this.enteredObserver = observer;
-            this.enteredObserver.enter(event);
-          }
-        } else if (observer != null) {
-          this.enteredObserver = observer;
-          this.enteredObserver.enter(event);
+      },
+      enumerable: false,
+      configurable: true
+    });
+    Object.defineProperty(DragItem.prototype, "selected", {
+      get: function () {
+        return this.el.classList.contains(SELECTED_CLASS);
+      },
+      set: function (value) {
+        if (value) {
+          this.el.classList.add(SELECTED_CLASS);
+        } else {
+          this.el.classList.remove(SELECTED_CLASS);
         }
-      };
+      },
+      enumerable: false,
+      configurable: true
+    });
 
-      EventManager.prototype.buildMouseEvent = function (event) {
-        if (event instanceof MouseEvent) {
-          return event;
-        }
+    DragItem.prototype.toggleSelected = function () {
+      this.el.classList.toggle(SELECTED_CLASS);
+    };
 
-        var touch = event.touches[0];
-        return new MouseEvent(event.type, {
-          screenX: touch === null || touch === void 0 ? void 0 : touch.screenX,
-          screenY: touch === null || touch === void 0 ? void 0 : touch.screenY,
-          clientX: touch === null || touch === void 0 ? void 0 : touch.clientX,
-          clientY: touch === null || touch === void 0 ? void 0 : touch.clientY,
-          ctrlKey: event.ctrlKey,
-          shiftKey: event.shiftKey,
-          altKey: event.altKey,
-          metaKey: event.metaKey,
-          relatedTarget: event.target
+    DragItem.prototype.setDragList = function (dragList) {
+      this.dragList = dragList;
+    };
+
+    DragItem.prototype.handleClick = function (_a) {
+      var srcEvent = _a.srcEvent;
+      if (!this.selectable) return;
+
+      if (srcEvent.metaKey || srcEvent.ctrlKey) {
+        this.toggleSelected();
+      } else {
+        var selectedItems = this.dragList.items.filter(function (node) {
+          return node.selected;
         });
-      };
 
-      return EventManager;
-    }();
+        if (selectedItems.length > 0) {
+          selectedItems.forEach(function (node) {
+            return node.selected = false;
+          });
+          this.selected = true;
+        } else {
+          this.toggleSelected();
+        }
+      }
+    };
 
-    function index (Vue) {
-      Vue.directive('drag-group', new DragGroupDirective());
-      Vue.directive('drag-item', new DragItemDirective());
-      Vue.directive('drag-list', new DragListDirective());
-      Vue.prototype.$dragDropEventManager = new EventManager();
-      window.manager = Vue.prototype.$dragDropEventManager;
-    }
+    DragItem.prototype.handleDragStart = function (event) {
+      var _this = this;
 
-    return index;
+      if (this.selectable) {
+        if (!this.selected) this.selected = true;
+        this.draggingNodes = this.dragList.items.filter(function (item) {
+          return item.selected;
+        }).map(function (item) {
+          return _this.genDraggingNode(item);
+        });
+      } else {
+        this.draggingNodes = [this.genDraggingNode(this)];
+      }
+
+      this.renderDraggingNodes();
+      this.startPoint = event.center;
+      event.preventDefault();
+    };
+
+    DragItem.prototype.handleDragCancel = function (event) {
+      console.log('cancel', event);
+    };
+
+    DragItem.prototype.handleDragMove = function (event) {
+      var currentPoint = event.center;
+      var deltaX = currentPoint.x - this.startPoint.x;
+      var deltaY = currentPoint.y - this.startPoint.y;
+      this.draggingNodes.forEach(function (node) {
+        node.style.transform = "translate3d(" + deltaX + "px, " + deltaY + "px, 0)";
+      });
+      event.preventDefault();
+    };
+
+    DragItem.prototype.handleDragEnd = function (event) {
+      this.disposeDraggingNodes();
+      event.preventDefault();
+    };
+
+    DragItem.prototype.genDraggingNode = function (item) {
+      var origin = item.el;
+      var rect = origin.getBoundingClientRect();
+      var cloned = item.el.cloneNode(true);
+      cloned.instance = item;
+      cloned.style.position = 'fixed';
+      cloned.style.left = rect.left + "px";
+      cloned.style.top = rect.top + "px";
+      cloned.style.margin = '0';
+      cloned.style.boxShadow = '0 5px 5px -3px rgba(0, 0, 0, 0.2), 0 8px 10px 1px rgba(0, 0, 0, 0.14), 0 3px 14px 2px rgba(0, 0, 0, 0.12)';
+      return cloned;
+    };
+
+    DragItem.prototype.renderDraggingNodes = function () {
+      var fragment = document.createDocumentFragment();
+      fragment.append.apply(fragment, this.draggingNodes);
+      document.body.append(fragment);
+    };
+
+    DragItem.prototype.disposeDraggingNodes = function () {
+      this.draggingNodes.forEach(function (node) {
+        return node.remove();
+      });
+      this.draggingNodes = null;
+    };
+
+    __decorate([Manager], DragItem.prototype, "manager", void 0);
+
+    __decorate([Listen('click')], DragItem.prototype, "handleClick", null);
+
+    __decorate([Listen('dragstart')], DragItem.prototype, "handleDragStart", null);
+
+    __decorate([Listen('dragcancel')], DragItem.prototype, "handleDragCancel", null);
+
+    __decorate([Listen('dragmove')], DragItem.prototype, "handleDragMove", null);
+
+    __decorate([Listen('dragend')], DragItem.prototype, "handleDragEnd", null);
+
+    DragItem = __decorate([EventListener], DragItem);
+    return DragItem;
+  }(DragElement);
+
+  var DragGroupDirective =
+  /** @class */
+  function () {
+    function DragGroupDirective() {}
+
+    DragGroupDirective.prototype.bind = function (el, binding, vnode, oldVnode) {
+      var value = binding.value || {};
+      el.instance = new DragGroup(el);
+      el.instance.data = value.data;
+    };
+
+    DragGroupDirective.prototype.inserted = function (el, binding, vnode, oldVnode) {
+      var instance = el.instance;
+      instance.collect();
+      initListener(instance);
+    };
+
+    DragGroupDirective.prototype.unbind = function (el, binding, vnode, oldVnode) {
+      disposeListener(el.instance);
+    };
+
+    return DragGroupDirective;
+  }();
+
+  var DragItemDirective =
+  /** @class */
+  function () {
+    function DragItemDirective() {}
+
+    DragItemDirective.prototype.bind = function (el, binding, vnode, oldVnode) {
+      var options = binding.value || {};
+      el.instance = new DragItem(el);
+      el.instance.selectable = !!options.selectable;
+      el.instance.data = options.data;
+    };
+
+    DragItemDirective.prototype.inserted = function (el, binding, vnode, oldVnode) {
+      var instance = el.instance;
+      instance.noticeDirty(DragList);
+      initListener(instance);
+    };
+
+    DragItemDirective.prototype.unbind = function (el) {
+      disposeListener(el.instance);
+    };
+
+    return DragItemDirective;
+  }();
+
+  var DragListDirective =
+  /** @class */
+  function () {
+    function DragListDirective() {}
+
+    DragListDirective.prototype.bind = function (el, binding, vnode, oldVnode) {
+      var options = binding.value || {};
+      var instance = new DragList(el);
+      instance.data = options.data;
+      instance.groupName = options.group;
+      el.instance = instance;
+    };
+
+    DragListDirective.prototype.inserted = function (el, binding, vnode, oldVnode) {
+      var instance = el.instance;
+      instance.collect();
+      instance.noticeDirty(DragGroup);
+      initListener(instance);
+    };
+
+    DragListDirective.prototype.unbind = function (el, binding, vnode, oldVnode) {
+      disposeListener(el.instance);
+    };
+
+    return DragListDirective;
+  }();
+
+  function index (Vue) {
+    Vue.directive('drag-group', new DragGroupDirective());
+    Vue.directive('drag-item', new DragItemDirective());
+    Vue.directive('drag-list', new DragListDirective());
+  }
+
+  return index;
 
 })));

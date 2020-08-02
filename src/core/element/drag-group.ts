@@ -1,17 +1,27 @@
 import { DragList } from './drag-list';
-import { Vue } from 'vue/types/vue';
 import { DragCollection } from '../drag-element';
-import { DragHTMLElement } from '../../shared/types';
-import { DRAG_GROUP_ATTR_NAME, DRAG_LIST_ATTR_NAME } from 'shared/constants';
+import { DRAG_LIST_ATTR_NAME } from 'shared/constants';
+
+const groupNameGenerator = {
+  id: 0,
+  getGroupId() {
+    return `kb-drag-group-${this.id++}`;
+  },
+};
 
 export class DragGroup extends DragCollection<DragList> {
-  constructor(el: DragHTMLElement<DragGroup>, data: any, vm: Vue) {
-    super(el, vm, data);
-    this.el.setAttribute(DRAG_GROUP_ATTR_NAME, '');
-  }
+  name: string = groupNameGenerator.getGroupId();
 
   collect() {
     this.collection = this.el.querySelectorAll(`[${DRAG_LIST_ATTR_NAME}]`);
+    this.initItems();
+  }
+
+  protected initItems() {
+    super.initItems();
+    for (const item of this.items) {
+      item.setGroupInstance(this);
+    }
   }
 
   destory() {}

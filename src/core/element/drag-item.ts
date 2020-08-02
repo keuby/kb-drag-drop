@@ -1,26 +1,30 @@
-import { Vue } from 'vue/types/vue';
-import { DRAG_ITEM_ATTR_NAME, DRAG_CLASS_PREFIX } from 'shared/constants';
 import { DragList } from './drag-list';
-import { buildDropEvent } from '../events/drag-event';
 import { DragElement } from '../drag-element';
-import { Subscription } from 'rxjs';
 import { DragHTMLElement } from 'shared/types';
+import { DRAG_ITEM_ATTR_NAME, DRAG_CLASS_PREFIX } from 'shared/constants';
+import { EventListener, Listen, Manager, EventManager } from 'core/event';
 
 const SELECTED_CLASS = DRAG_CLASS_PREFIX + '-item-selected';
 const DRAGGING_CLASS = DRAG_CLASS_PREFIX + '-item-dragging';
+const INSERTED_CLASS = DRAG_CLASS_PREFIX + '-item-inserted';
 
-export interface DragItemOptions {
-  selectable?: boolean;
-  data?: any;
-}
-
+@EventListener
 export class DragItem extends DragElement {
-  private selectable: boolean;
-  private subscriptions: Subscription[] = [];
-  private draggingNodes: DragItem[] = [];
-  private startPoint: [number, number];
+  dragList: DragList;
+  selectable: boolean;
 
-  private _dragList: DragList;
+  startPoint: HammerPoint;
+  wrapperEl: HTMLElement;
+  draggingNodes: DragHTMLElement<DragItem>[];
+
+  @Manager manager: EventManager;
+
+  get group() {
+    if (this.dragList != null) {
+      return this.dragList.group;
+    }
+    return null;
+  }
 
   get selected() {
     return this.el.classList.contains(SELECTED_CLASS);
@@ -34,109 +38,95 @@ export class DragItem extends DragElement {
     }
   }
 
-  get dragList() {
-    if (this._dragList == null) {
-      this._dragList = this.search<DragList>(DragList);
-    }
-    return this._dragList;
-  }
-
-  constructor(el: DragHTMLElement<DragItem>, vm: Vue, options?: DragItemOptions) {
-    super(el, vm, options?.data);
+  constructor(el: DragHTMLElement<DragItem>) {
+    super(el);
     this.el.setAttribute(DRAG_ITEM_ATTR_NAME, '');
-    this.selectable = !!options?.selectable;
   }
 
-  addDraggingNodes(node: DragItem) {
-    this.draggingNodes.push(node);
-    node.selected = true;
-    node.el.style.zIndex = '1000';
+  toggleSelected() {
+    this.el.classList.toggle(SELECTED_CLASS);
   }
 
-  clearDraggingNodes() {
-    this.draggingNodes.forEach((node) => {
-      node.selected = false;
-      node.el.style.transform = '';
-      node.el.style.zIndex = '';
-    });
-    this.draggingNodes = [];
+  setDragList(dragList: DragList) {
+    this.dragList = dragList;
   }
 
-  init() {
-    const eventManager = this.eventManater;
-
-    if (this.selectable) {
-      const clickSub = eventManager.onClick(this.el, (event: MouseEvent) => {
-        this.handleSelect(event);
-      });
-      this.subscriptions.push(clickSub);
-    }
-
-    const dragDropSub = eventManager.onDragDrop(this.el, {
-      dragStart: (event: MouseEvent) => {
-        if (this.selectable) {
-          this.dragList.items.filter((item) => item.selected).forEach((item: DragItem) => this.addDraggingNodes(item));
-          if (!this.selected) {
-            this.addDraggingNodes(this);
-          }
-        } else {
-          this.addDraggingNodes(this);
-        }
-        this.startPoint = [event.clientX, event.clientY];
-      },
-      dragMove: (event: MouseEvent) => {
-        const { clientX, clientY } = event;
-        const currentPoint: [number, number] = [clientX, clientY];
-        this.draggingNodes.forEach((node) => {
-          this.transformDragItem(this.startPoint, currentPoint, node);
-        });
-      },
-      dragEnd: (event: MouseEvent) => {
-        if (this.eventManater.enteredObserver != null) {
-          const toDragHTMLElement = this.eventManater.enteredObserver.el;
-          const fromList = this.dragList;
-          const toList = toDragHTMLElement.instance;
-
-          const itemData = this.selectable ? this.draggingNodes.map((node) => node.data) : this.draggingNodes[0].data;
-
-          const dropEvent = buildDropEvent(event, {
-            item: itemData,
-            from: this.dragList.data,
-            to: toList.data,
-          });
-          fromList.el.dispatchEvent(dropEvent);
-        }
-
-        this.clearDraggingNodes();
-      },
-    });
-
-    this.subscriptions.push(dragDropSub);
-  }
-
-  handleSelect(event: MouseEvent) {
+  @Listen('click') handleClick({ srcEvent }: HammerInput) {
     if (!this.selectable) return;
 
-    if (event.metaKey || event.ctrlKey) {
-      this.selected = true;
+    if (srcEvent.metaKey || srcEvent.ctrlKey) {
+      this.toggleSelected();
     } else {
-      this.dragList.items.forEach((node) => {
-        node.selected = false;
+      const selectedItems = this.dragList.items.filter((node) => {
+        return node.selected;
       });
-      this.selected = true;
-    }
-    console.log('click');
-  }
-
-  destory() {
-    if (this.subscriptions && this.subscriptions.length > 0) {
-      this.subscriptions.forEach((sub) => sub.unsubscribe());
+      if (selectedItems.length > 0) {
+        selectedItems.forEach((node) => (node.selected = false));
+        this.selected = true;
+      } else {
+        this.toggleSelected();
+      }
     }
   }
 
-  transformDragItem(start: [number, number], current: [number, number], item: DragItem) {
-    const deltaX = current[0] - start[0];
-    const deltaY = current[1] - start[1];
-    item.el.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+  @Listen('dragstart') handleDragStart(event: HammerInput) {
+    if (this.selectable) {
+      if (!this.selected) this.selected = true;
+      this.draggingNodes = this.dragList.items
+        .filter((item) => item.selected)
+        .map((item) => this.genDraggingNode(item));
+    } else {
+      this.draggingNodes = [this.genDraggingNode(this)];
+    }
+    this.renderDraggingNodes();
+    this.startPoint = event.center;
+    event.preventDefault();
+  }
+
+  @Listen('dragmove') handleDragMove(event: HammerInput) {
+    const currentPoint = event.center;
+    const deltaX = currentPoint.x - this.startPoint.x;
+    const deltaY = currentPoint.y - this.startPoint.y;
+    this.draggingNodes.forEach((node) => {
+      node.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`;
+    });
+    event.preventDefault();
+  }
+
+  @Listen('dragend') handleDragEnd(event: HammerInput) {
+    this.disposeDraggingNodes();
+    event.preventDefault();
+  }
+
+  private genDraggingNode(item: DragItem) {
+    const origin = item.el;
+    const rect = origin.getBoundingClientRect();
+
+    const cloned = item.el.cloneNode(true) as DragHTMLElement<DragItem>;
+    cloned.instance = item;
+    cloned.style.position = 'fixed';
+    cloned.style.left = `${rect.left}px`;
+    cloned.style.top = `${rect.top}px`;
+    cloned.style.margin = '0';
+    cloned.style.boxShadow =
+      '0 5px 5px -3px rgba(0, 0, 0, 0.2), 0 8px 10px 1px rgba(0, 0, 0, 0.14), 0 3px 14px 2px rgba(0, 0, 0, 0.12)';
+    return cloned;
+  }
+
+  private renderDraggingNodes() {
+    this.draggingNodes.forEach((node) => {
+      node.instance.el.classList.add(DRAGGING_CLASS);
+    });
+    const fragment = document.createDocumentFragment();
+    fragment.append(...this.draggingNodes);
+    document.body.append(fragment);
+  }
+
+  private disposeDraggingNodes() {
+    this.draggingNodes.forEach((node) => {
+      node.instance.el.classList.remove(DRAGGING_CLASS);
+      node.remove();
+    });
+    this.draggingNodes = null;
   }
 }

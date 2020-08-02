@@ -13,20 +13,20 @@ body {
 .wrapper {
   flex: 1;
   position: relative;
-  /* height: 300px; */
+  height: 300px;
   margin: 100px auto 0;
   border: 1px solid blue;
-  /* overflow: hidden; */
+  overflow: hidden;
 }
 
-.wrapper > p {
+p {
   user-select: none;
   padding: 10px;
   margin: 10px;
   border: 1px solid gray;
 }
 
-.wrapper > p.kb-drag-item-selected {
+p.kb-drag-item-selected {
   border: 1px solid red;
 }
 

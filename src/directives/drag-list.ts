@@ -1,19 +1,23 @@
 import { DirectiveOptions, VNode } from 'vue';
 import { DirectiveBinding } from 'vue/types/options';
-import { DragHTMLElement, DragList, DragGroup } from '../core';
+import { DragHTMLElement } from 'shared/types';
+import { DragList, DragGroup, initListener, disposeListener } from 'core';
 
 export class DragListDirective implements DirectiveOptions {
   bind(el: DragHTMLElement<DragList>, binding: DirectiveBinding, vnode: VNode, oldVnode: VNode) {
-    el.instance = new DragList(el, vnode.context, binding.value);
+    const options = binding.value || {};
+    const instance = new DragList(el);
+    instance.data = options.data;
+    instance.groupName = options.group;
+    el.instance = instance;
   }
   inserted(el: DragHTMLElement<DragList>, binding: DirectiveBinding, vnode: VNode, oldVnode: VNode) {
     const instance = el.instance;
     instance.collect();
     instance.noticeDirty(DragGroup);
-    instance.init();
+    initListener(instance);
   }
   unbind(el: DragHTMLElement<DragList>, binding: DirectiveBinding, vnode: VNode, oldVnode: VNode) {
-    el.instance.destory;
-    el.instance = null;
+    disposeListener(el.instance);
   }
 }
