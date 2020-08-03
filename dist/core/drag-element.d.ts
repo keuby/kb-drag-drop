@@ -1,10 +1,11 @@
-import { DragHTMLElement } from 'shared/types';
+import { DragHTMLElement, EventType } from 'shared/types';
 export declare class DragElement {
-    data: any;
     el: DragHTMLElement<DragElement>;
+    data: any;
     constructor(el: DragHTMLElement<DragElement>);
     noticeDirty(Clazz: any): void;
     search<T extends DragCollection<any>>(Clazz: any): T;
+    dispatchEvent(event: EventType, detail: any): void;
 }
 export declare abstract class DragCollection<T> extends DragElement {
     private dirty;

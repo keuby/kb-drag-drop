@@ -1,4 +1,3 @@
-import { Vue } from 'vue/types/vue';
 import { DragItem } from './drag-item';
 import { DRAG_CLASS_PREFIX, DRAG_LIST_ATTR_NAME, DRAG_ITEM_ATTR_NAME } from 'shared/constants';
 import { DragCollection } from 'core/drag-element';
@@ -9,10 +8,12 @@ export const DRAG_ENTERED_CLS = DRAG_CLASS_PREFIX + '-entered';
 
 export class DragList extends DragCollection<DragItem> {
   groupName: string;
-  private dragListGroup: DragGroup;
+  selectable: boolean;
+  dragListGroup: DragGroup;
 
   constructor(el: DragHTMLElement<DragList>) {
     super(el);
+    this.selectable = false;
     this.el.setAttribute(DRAG_LIST_ATTR_NAME, '');
   }
 

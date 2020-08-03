@@ -8,13 +8,12 @@ export declare const DRAGGING_CLASS: string;
 export declare const INSERTED_CLASS: string;
 export declare class DragItem extends DragElement {
     dragList: DragList;
-    selectable: boolean;
     startPoint: HammerPoint;
     wrapperEl: HTMLElement;
-    draggingItems: DragItem[];
     draggingNodes: DragHTMLElement<DragItem>[];
     manager: EventManager;
     get group(): string;
+    get selectable(): boolean;
     get selected(): boolean;
     set selected(value: boolean);
     constructor(el: DragHTMLElement<DragItem>);

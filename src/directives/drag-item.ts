@@ -7,7 +7,6 @@ export class DragItemDirective implements DirectiveOptions {
   bind(el: DragHTMLElement<DragItem>, binding: DirectiveBinding, vnode: VNode, oldVnode: VNode) {
     const options = binding.value || {};
     el.instance = new DragItem(el);
-    el.instance.selectable = !!options.selectable;
     el.instance.data = options.data;
   }
   inserted(el: DragHTMLElement<DragItem>, binding: DirectiveBinding, vnode: VNode, oldVnode: VNode) {

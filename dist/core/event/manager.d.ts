@@ -1,23 +1,34 @@
 /// <reference types="hammerjs" />
 import { ComputeRecord } from 'shared/types';
-import { DragElement } from 'core/drag-element';
-import { DragItem } from 'core/element/drag-item';
-export declare class LeaveEnterRecord<T extends DragElement> {
-    instance: T;
+import { DragItem, DragList } from 'core';
+export declare class LeaveEnterRecord {
+    instance: DragList;
     record: ComputeRecord;
-    constructor(ins: T, record: ComputeRecord);
+    constructor(ins: DragList, record: ComputeRecord);
+    isEntered({ x, y }: HammerPoint): boolean;
 }
 export declare class EventManager {
     private static instance;
     static getInstance(): EventManager;
     dragging: boolean;
-    draggingElement: DragElement;
-    draggingObserverRecords: LeaveEnterRecord<any>[];
-    enteredObserverRecord: LeaveEnterRecord<any>;
-    observerRecords: LeaveEnterRecord<any>[];
+    draggingItem: DragItem;
+    draggingObserverRecords: LeaveEnterRecord[];
+    enteredObserverRecord: LeaveEnterRecord;
+    selectable: boolean;
+    selectedGroup: string;
+    selectedItems: Set<DragItem>;
+    observerRecords: LeaveEnterRecord[];
     private constructor();
-    emitDragStart(els: DragItem[], selectable: boolean): void;
+    emitElementSelect(el: DragItem, selected: boolean): void;
+    emitDragStart(instance: DragItem): void;
     emitDragMove(event: HammerInput): void;
     emitDragEnd(): void;
-    addObserver<T extends DragElement>(ins: T, record: ComputeRecord): void;
+    addObserver(ins: DragList, record: ComputeRecord): void;
+    cleanSelectedItems(): void;
+    private callHandler;
+    private emitDragEvent;
+    private emitDragItemEvent;
+    private emitDragListEvent;
+    private dispatchEvent;
+    private broadcastEvent;
 }

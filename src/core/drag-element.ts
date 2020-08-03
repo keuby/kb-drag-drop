@@ -1,8 +1,8 @@
-import { DragHTMLElement } from 'shared/types';
+import { DragHTMLElement, EventType } from 'shared/types';
 
 export class DragElement {
-  data: any;
   el: DragHTMLElement<DragElement>;
+  data: any;
 
   constructor(el: DragHTMLElement<DragElement>) {
     this.el = el;
@@ -23,6 +23,8 @@ export class DragElement {
     }
     return null;
   }
+
+  dispatchEvent(event: EventType, detail: any) {}
 }
 
 export abstract class DragCollection<T> extends DragElement {

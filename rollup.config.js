@@ -9,6 +9,9 @@ export default {
     file: 'dist/index.js',
     format: 'umd',
     name: 'KbDragDrop',
+    globals: {
+      hammerjs: 'Hammer',
+    }
   },
   plugins: [
     typescript(),

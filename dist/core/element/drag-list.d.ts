@@ -5,7 +5,8 @@ import { DragGroup } from './drag-group';
 export declare const DRAG_ENTERED_CLS: string;
 export declare class DragList extends DragCollection<DragItem> {
     groupName: string;
-    private dragListGroup;
+    selectable: boolean;
+    dragListGroup: DragGroup;
     constructor(el: DragHTMLElement<DragList>);
     get group(): string;
     setGroupInstance(ins: DragGroup): void;

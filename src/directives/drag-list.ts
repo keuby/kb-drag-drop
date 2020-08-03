@@ -8,6 +8,7 @@ export class DragListDirective implements DirectiveOptions {
     const options = binding.value || {};
     const instance = new DragList(el);
     instance.data = options.data;
+    instance.selectable = Boolean(options.selectable);
     instance.groupName = options.group;
     el.instance = instance;
   }
