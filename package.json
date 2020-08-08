@@ -2,9 +2,14 @@
   "name": "kb-drag-drop",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/kb-drag-drop.js",
+  "module": "dist/kb-drag-drop.esm.js",
+  "typings": "dist/index.d.ts",
   "scripts": {
-    "build": "rollup -c"
+    "build": "yarn build:umd && yarn build:esm",
+    "build:umd": "cross-env format=umd rollup -c",
+    "build:esm": "cross-env format=esm rollup -c",
+    "build:uglify": "cross-env format=uglify rollup -c"
   },
   "repository": {
     "type": "git",
@@ -25,10 +30,14 @@
     "@babel/core": "^7.11.0",
     "@babel/preset-typescript": "^7.10.4",
     "@types/hammerjs": "^2.0.36",
+    "cross-env": "^7.0.2",
     "rollup": "^2.23.0",
     "rollup-plugin-alias": "^2.2.0",
     "rollup-plugin-babel": "^4.4.0",
+    "rollup-plugin-banner": "^0.2.1",
+    "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript2": "^0.27.1",
+    "rollup-plugin-uglify": "^6.0.4",
     "typescript": "^3.9.7",
     "vue": "^2.6.11"
   },

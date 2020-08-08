@@ -1,12 +1,20 @@
+/**
+ * kb-drag-drop v1.0.0
+ * release at 2020-8-8
+ * by Knight Chen
+ * github https://github.com/keuby/kb-drag-drop#readme
+ */
+
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('hammerjs')) :
-  typeof define === 'function' && define.amd ? define(['hammerjs'], factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.KbDragDrop = factory(global.Hammer));
-}(this, (function (Hammer) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('hammerjs')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'hammerjs'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.KbDragDrop = {}, global.Hammer));
+}(this, (function (exports, Hammer) { 'use strict';
 
   Hammer = Hammer && Object.prototype.hasOwnProperty.call(Hammer, 'default') ? Hammer['default'] : Hammer;
 
   const DRAG_ITEM_ATTR_NAME = 'kb-drag-item';
+  const DRAG_GROUP_ATTR_NAME = 'kb-drag-group';
   const DRAG_LIST_ATTR_NAME = 'kb-drag-list';
   const DRAG_CLASS_PREFIX = 'kb-drag';
   const EVENT_MAP = {
@@ -720,6 +728,13 @@
     document.head.appendChild(sheet);
   }
 
-  return index;
+  exports.DRAG_CLASS_PREFIX = DRAG_CLASS_PREFIX;
+  exports.DRAG_GROUP_ATTR_NAME = DRAG_GROUP_ATTR_NAME;
+  exports.DRAG_ITEM_ATTR_NAME = DRAG_ITEM_ATTR_NAME;
+  exports.DRAG_LIST_ATTR_NAME = DRAG_LIST_ATTR_NAME;
+  exports.EVENT_MAP = EVENT_MAP;
+  exports.default = index;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
