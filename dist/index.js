@@ -43,11 +43,33 @@
       this.dragging = false;
       this.observerRecords = [];
       this.selectedItems = new Set();
+      this.selectEmitRecord = new Map();
       this.enteredObserverRecord = null;
     }
 
     static getInstance() {
       return this.instance;
+    }
+
+    get dragData() {
+      const data = {
+        data: this.selectable ? Array.from(this.selectedItems || []).map(item => item.data) : this.draggingItem && this.draggingItem.data,
+        from: this.draggingItem.dragList.data
+      };
+
+      if (this.enteredObserverRecord != null) {
+        data.current = this.enteredObserverRecord.instance.data;
+      }
+
+      return data;
+    }
+
+    get dropData() {
+      return {
+        data: this.selectable ? Array.from(this.selectedItems || []).map(item => item.data) : this.draggingItem && this.draggingItem.data,
+        from: this.draggingItem.dragList.data,
+        to: this.enteredObserverRecord.instance.data
+      };
     }
 
     emitElementSelect(el, selected) {
@@ -62,9 +84,19 @@
       } else {
         this.selectedItems.delete(el);
       }
+
+      this.emitSelectEvent(el, {
+        selected
+      });
+      this.emitSelectEvent(el.dragList, {
+        selectedItems: Array.from(this.selectedItems).map(({
+          data
+        }) => data)
+      });
     }
 
     emitDragStart(instance) {
+      if (instance == null) return;
       const selectable = instance.selectable;
       const group = this.selectable ? this.selectedGroup : instance.group;
       this.dragging = true;
@@ -74,7 +106,7 @@
         const recordGroup = record.instance.group;
         return recordGroup != null && recordGroup === group;
       });
-      this.emitDragEvent('dragstart', {});
+      this.emitDragEvent('dragstart', this.dragData);
     }
 
     emitDragMove(event) {
@@ -85,27 +117,28 @@
 
       if (enteredRecord != null) {
         if (this.enteredObserverRecord === enteredRecord) {
-          return this.dispatchEvent(enteredRecord.instance, 'dragover', {});
+          return this.dispatchEvent(enteredRecord.instance, 'dragover', this.dragData);
         }
 
         if (this.enteredObserverRecord != null) {
           this.callHandler(this.enteredObserverRecord, 'dragleave', event);
         }
 
-        this.callHandler(enteredRecord, 'dragenter', event);
         this.enteredObserverRecord = enteredRecord;
+        this.callHandler(enteredRecord, 'dragenter', event);
       } else if (this.enteredObserverRecord != null) {
         this.callHandler(this.enteredObserverRecord, 'dragleave', event);
         this.enteredObserverRecord = null;
       }
     }
 
-    emitDragEnd() {
+    emitDragEnd(event) {
       if (!this.dragging) return;
-      this.emitDragEvent('dragend', {});
+      this.emitDragEvent('dragend', this.dragData);
 
       if (this.enteredObserverRecord != null) {
-        this.emitDragEvent('drop', {});
+        this.emitDragEvent('drop', this.dropData);
+        this.callHandler(this.enteredObserverRecord, 'dragleave', event);
       }
 
       this.dragging = false;
@@ -140,12 +173,26 @@
         instance[handler](data);
       }
 
-      this.dispatchEvent(instance, event, {});
+      this.dispatchEvent(instance, event, this.dragData);
     }
 
     emitDragEvent(event, detail) {
       this.emitDragItemEvent(event, detail);
       this.emitDragListEvent(event, detail);
+    }
+
+    emitSelectEvent(el, detail) {
+      const emitted = this.selectEmitRecord.has(el);
+
+      if (!emitted) {
+        setTimeout(() => {
+          const latestDetail = this.selectEmitRecord.get(el);
+          this.dispatchEvent(el, 'select', latestDetail);
+          this.selectEmitRecord.delete(el);
+        }, 30);
+      }
+
+      this.selectEmitRecord.set(el, detail);
     }
 
     emitDragItemEvent(event, detail) {
@@ -161,11 +208,11 @@
     }
 
     dispatchEvent(el, event, detail) {
-      el.dispatchEvent(event, {});
+      el.dispatchEvent(event, detail);
     }
 
     broadcastEvent(els, event, detail) {
-      els.forEach(item => item.dispatchEvent(event, {}));
+      els.forEach(item => item.dispatchEvent(event, detail));
     }
 
   }
@@ -214,14 +261,22 @@
       record[event] = handler;
     }
   }
-  function initListener(instance) {
+  function initListener(instance, listener) {
     if (typeof instance.__init__ === 'function') {
       instance.__init__();
+    }
+
+    if (listener != null && typeof instance.on === 'function') {
+      instance.on(listener);
     }
   }
   function disposeListener(instance) {
     if (typeof instance.__dispose__ === 'function') {
       instance.__dispose__();
+    }
+
+    if (typeof instance.off === 'function') {
+      instance.off();
     }
   }
 
@@ -243,6 +298,7 @@
   class DragElement {
     constructor(el) {
       this.el = el;
+      this.eventRecord = Object.create(null);
     }
 
     noticeDirty(Clazz) {
@@ -264,7 +320,34 @@
       return null;
     }
 
-    dispatchEvent(event, detail) {}
+    on(event, callback) {
+      if (typeof event === 'function') {
+        this.eventRecord['default'] = event;
+      } else {
+        this.eventRecord[event] = callback;
+      }
+    }
+
+    off(type) {
+      if (type == null) type = 'default';
+      this.eventRecord[type] = null;
+    }
+
+    dispatchEvent(event, detail) {
+      let callback, params;
+
+      if (typeof this.eventRecord[event] === 'function') {
+        callback = this.eventRecord[event];
+        params = [detail];
+      } else if (typeof this.eventRecord['default'] === 'function') {
+        callback = this.eventRecord['default'];
+        params = [event, detail];
+      }
+
+      if (callback != null) {
+        callback.apply(this, params);
+      }
+    }
 
   }
   class DragCollection extends DragElement {
@@ -330,7 +413,30 @@
 
   }
 
-  class DragList extends DragCollection {
+  /*! *****************************************************************************
+  Copyright (c) Microsoft Corporation.
+
+  Permission to use, copy, modify, and/or distribute this software for any
+  purpose with or without fee is hereby granted.
+
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+  REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+  AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+  INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+  LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+  PERFORMANCE OF THIS SOFTWARE.
+  ***************************************************************************** */
+
+  function __decorate(decorators, target, key, desc) {
+      var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+      if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+      else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+      return c > 3 && r && Object.defineProperty(target, key, r), r;
+  }
+
+  const DRAG_ENTERED_CLS = DRAG_CLASS_PREFIX + '-entered';
+  let DragList = class DragList extends DragCollection {
     constructor(el) {
       super(el);
       this.selectable = false;
@@ -354,6 +460,14 @@
       this.initItems();
     }
 
+    handleDragEnter(event) {
+      this.el.classList.add(DRAG_ENTERED_CLS);
+    }
+
+    handleDragLeave(event) {
+      this.el.classList.remove(DRAG_ENTERED_CLS);
+    }
+
     initItems() {
       super.initItems();
 
@@ -362,29 +476,13 @@
       }
     }
 
-  }
+  };
 
-  /*! *****************************************************************************
-  Copyright (c) Microsoft Corporation.
+  __decorate([Listen('dragenter')], DragList.prototype, "handleDragEnter", null);
 
-  Permission to use, copy, modify, and/or distribute this software for any
-  purpose with or without fee is hereby granted.
+  __decorate([Listen('dragleave')], DragList.prototype, "handleDragLeave", null);
 
-  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-  REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-  AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-  INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-  LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-  PERFORMANCE OF THIS SOFTWARE.
-  ***************************************************************************** */
-
-  function __decorate(decorators, target, key, desc) {
-      var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-      if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-      else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-      return c > 3 && r && Object.defineProperty(target, key, r), r;
-  }
+  DragList = __decorate([EventListener], DragList);
 
   const SELECTED_CLASS = DRAG_CLASS_PREFIX + '-item-selected';
   const DRAGGING_CLASS = DRAG_CLASS_PREFIX + '-item-dragging';
@@ -400,7 +498,7 @@
     }
 
     get selectable() {
-      return this.dragList == null ? this.dragList.selectable : false;
+      return this.dragList != null ? this.dragList.selectable : false;
     }
 
     get selected() {
@@ -475,7 +573,7 @@
 
     handleDragEnd(event) {
       event.preventDefault();
-      this.manager.emitDragEnd();
+      this.manager.emitDragEnd(event);
       this.disposeDraggingNodes();
     }
 
@@ -500,6 +598,7 @@
     }
 
     disposeDraggingNodes() {
+      if (this.draggingNodes == null) return;
       this.draggingNodes.forEach(node => {
         node.instance.el.classList.remove(DRAGGING_CLASS);
         node.remove();
@@ -522,34 +621,19 @@
   DragItem = __decorate([EventListener], DragItem);
 
   class DragGroupDirective {
-    bind(el, binding, vnode, oldVnode) {
+    bind(el, binding) {
       const value = binding.value || {};
       el.instance = new DragGroup(el);
       el.instance.data = value.data;
+
+      if (value.groupName != null && value.groupName !== '') {
+        el.instance.name = value.groupName;
+      }
     }
 
-    inserted(el, binding, vnode, oldVnode) {
+    inserted(el) {
       const instance = el.instance;
       instance.collect();
-      initListener(instance);
-    }
-
-    unbind(el, binding, vnode, oldVnode) {
-      disposeListener(el.instance);
-    }
-
-  }
-
-  class DragItemDirective {
-    bind(el, binding, vnode, oldVnode) {
-      const options = binding.value || {};
-      el.instance = new DragItem(el);
-      el.instance.data = options.data;
-    }
-
-    inserted(el, binding, vnode, oldVnode) {
-      const instance = el.instance;
-      instance.noticeDirty(DragList);
       initListener(instance);
     }
 
@@ -559,8 +643,32 @@
 
   }
 
+  class DragItemDirective {
+    bind(el, binding) {
+      const options = binding.value || {};
+      el.instance = new DragItem(el);
+      el.instance.data = options.data;
+    }
+
+    inserted(el) {
+      const instance = el.instance;
+      instance.noticeDirty(DragList);
+      initListener(instance, (type, detail) => {
+        const event = new CustomEvent(type, {
+          detail
+        });
+        el.dispatchEvent(event);
+      });
+    }
+
+    unbind(el) {
+      disposeListener(el.instance);
+    }
+
+  }
+
   class DragListDirective {
-    bind(el, binding, vnode, oldVnode) {
+    bind(el, binding) {
       const options = binding.value || {};
       const instance = new DragList(el);
       instance.data = options.data;
@@ -569,14 +677,19 @@
       el.instance = instance;
     }
 
-    inserted(el, binding, vnode, oldVnode) {
+    inserted(el) {
       const instance = el.instance;
       instance.collect();
       instance.noticeDirty(DragGroup);
-      initListener(instance);
+      initListener(instance, (type, detail) => {
+        const event = new CustomEvent(type, {
+          detail
+        });
+        el.dispatchEvent(event);
+      });
     }
 
-    unbind(el, binding, vnode, oldVnode) {
+    unbind(el) {
       disposeListener(el.instance);
     }
 

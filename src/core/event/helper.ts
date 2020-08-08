@@ -44,14 +44,21 @@ export function addListener(constructor: any, event: EventType, handler: string)
   }
 }
 
-export function initListener(instance: any) {
+export function initListener(instance: any, listener?: Function) {
   if (typeof instance.__init__ === 'function') {
     instance.__init__();
+  }
+  if (listener != null && typeof instance.on === 'function') {
+    instance.on(listener);
   }
 }
 
 export function disposeListener(instance: any) {
   if (typeof instance.__dispose__ === 'function') {
     instance.__dispose__();
+  }
+
+  if (typeof instance.off === 'function') {
+    instance.off();
   }
 }

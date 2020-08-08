@@ -1,3 +1,4 @@
+/// <reference types="hammerjs" />
 import { DragItem } from './drag-item';
 import { DragCollection } from 'core/drag-element';
 import { DragHTMLElement } from 'shared/types';
@@ -7,9 +8,11 @@ export declare class DragList extends DragCollection<DragItem> {
     groupName: string;
     selectable: boolean;
     dragListGroup: DragGroup;
-    constructor(el: DragHTMLElement<DragList>);
     get group(): string;
+    constructor(el: DragHTMLElement<DragList>);
     setGroupInstance(ins: DragGroup): void;
     collect(): void;
+    handleDragEnter(event: HammerInput): void;
+    handleDragLeave(event: HammerInput): void;
     protected initItems(): void;
 }

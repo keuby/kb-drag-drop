@@ -19,6 +19,10 @@ body {
   overflow: hidden;
 }
 
+.wrapper.kb-drag-entered {
+  background-color: bisque;
+}
+
 p {
   user-select: none;
   padding: 10px;

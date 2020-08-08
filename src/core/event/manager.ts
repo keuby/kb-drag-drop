@@ -1,5 +1,14 @@
-import { ComputeRecord, EventComputeType, EventType } from 'shared/types';
 import { DragElement, DragItem, DragList } from 'core';
+import {
+  ComputeRecord,
+  EventComputeType,
+  EventType,
+  DragDetail,
+  DropDetail,
+  MultipleSelectDetail,
+  SelectDetail,
+  EventDetail,
+} from 'shared/types';
 
 export class LeaveEnterRecord {
   instance: DragList;
@@ -24,6 +33,8 @@ export class EventManager {
     return this.instance;
   }
 
+  private selectEmitRecord: Map<DragElement, any>;
+
   dragging: boolean = false;
   draggingItem: DragItem;
   draggingObserverRecords: LeaveEnterRecord[];
@@ -35,9 +46,35 @@ export class EventManager {
 
   observerRecords: LeaveEnterRecord[];
 
+  get dragData() {
+    const data: DragDetail = {
+      data: this.selectable
+        ? Array.from(this.selectedItems || []).map((item) => item.data)
+        : this.draggingItem && this.draggingItem.data,
+      from: this.draggingItem.dragList.data,
+    };
+
+    if (this.enteredObserverRecord != null) {
+      data.current = this.enteredObserverRecord.instance.data;
+    }
+
+    return data;
+  }
+
+  get dropData() {
+    return {
+      data: this.selectable
+        ? Array.from(this.selectedItems || []).map((item) => item.data)
+        : this.draggingItem && this.draggingItem.data,
+      from: this.draggingItem.dragList.data,
+      to: this.enteredObserverRecord.instance.data,
+    } as DropDetail;
+  }
+
   private constructor() {
     this.observerRecords = [];
     this.selectedItems = new Set();
+    this.selectEmitRecord = new Map();
     this.enteredObserverRecord = null;
   }
 
@@ -53,9 +90,16 @@ export class EventManager {
     } else {
       this.selectedItems.delete(el);
     }
+
+    this.emitSelectEvent(el, { selected });
+    this.emitSelectEvent(el.dragList, {
+      selectedItems: Array.from(this.selectedItems).map(({ data }) => data),
+    });
   }
 
   emitDragStart(instance: DragItem) {
+    if (instance == null) return;
+
     const selectable = instance.selectable;
     const group = this.selectable ? this.selectedGroup : instance.group;
 
@@ -67,7 +111,7 @@ export class EventManager {
       return recordGroup != null && recordGroup === group;
     });
 
-    this.emitDragEvent('dragstart', {});
+    this.emitDragEvent('dragstart', this.dragData);
   }
 
   emitDragMove(event: HammerInput) {
@@ -79,28 +123,29 @@ export class EventManager {
 
     if (enteredRecord != null) {
       if (this.enteredObserverRecord === enteredRecord) {
-        return this.dispatchEvent(enteredRecord.instance, 'dragover', {});
+        return this.dispatchEvent(enteredRecord.instance, 'dragover', this.dragData);
       }
 
       if (this.enteredObserverRecord != null) {
         this.callHandler(this.enteredObserverRecord, 'dragleave', event);
       }
 
-      this.callHandler(enteredRecord, 'dragenter', event);
       this.enteredObserverRecord = enteredRecord;
+      this.callHandler(enteredRecord, 'dragenter', event);
     } else if (this.enteredObserverRecord != null) {
       this.callHandler(this.enteredObserverRecord, 'dragleave', event);
       this.enteredObserverRecord = null;
     }
   }
 
-  emitDragEnd() {
+  emitDragEnd(event: HammerInput) {
     if (!this.dragging) return;
 
-    this.emitDragEvent('dragend', {});
+    this.emitDragEvent('dragend', this.dragData);
 
     if (this.enteredObserverRecord != null) {
-      this.emitDragEvent('drop', {});
+      this.emitDragEvent('drop', this.dropData);
+      this.callHandler(this.enteredObserverRecord, 'dragleave', event);
     }
 
     this.dragging = false;
@@ -129,15 +174,27 @@ export class EventManager {
     if (handler != null && typeof instance[handler] === 'function') {
       instance[handler](data);
     }
-    this.dispatchEvent(instance, event, {});
+    this.dispatchEvent(instance, event, this.dragData);
   }
 
-  private emitDragEvent(event: EventType, detail: any) {
+  private emitDragEvent(event: EventType, detail: DragDetail) {
     this.emitDragItemEvent(event, detail);
     this.emitDragListEvent(event, detail);
   }
 
-  private emitDragItemEvent(event: EventType, detail: any) {
+  private emitSelectEvent(el: DragElement, detail: SelectDetail | MultipleSelectDetail) {
+    const emitted = this.selectEmitRecord.has(el);
+    if (!emitted) {
+      setTimeout(() => {
+        const latestDetail = this.selectEmitRecord.get(el);
+        this.dispatchEvent(el, 'select', latestDetail);
+        this.selectEmitRecord.delete(el);
+      }, 30);
+    }
+    this.selectEmitRecord.set(el, detail);
+  }
+
+  private emitDragItemEvent(event: EventType, detail: DragDetail) {
     if (!this.selectable) {
       this.dispatchEvent(this.draggingItem, event, detail);
     } else {
@@ -145,15 +202,15 @@ export class EventManager {
     }
   }
 
-  private emitDragListEvent(event: EventType, detail: any) {
+  private emitDragListEvent(event: EventType, detail: DragDetail) {
     this.dispatchEvent(this.draggingItem.dragList, event, detail);
   }
 
-  private dispatchEvent(el: DragElement, event: EventType, detail: any) {
-    el.dispatchEvent(event, {});
+  private dispatchEvent(el: DragElement, event: EventType, detail: EventDetail) {
+    el.dispatchEvent(event, detail);
   }
 
-  private broadcastEvent(els: Set<DragElement>, event: EventType, detail: any) {
-    els.forEach((item) => item.dispatchEvent(event, {}));
+  private broadcastEvent(els: Set<DragElement>, event: EventType, detail: EventDetail) {
+    els.forEach((item) => item.dispatchEvent(event, detail));
   }
 }

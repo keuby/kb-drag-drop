@@ -23,7 +23,7 @@ export class DragItem extends DragElement {
   }
 
   get selectable() {
-    return this.dragList == null ? this.dragList.selectable : false;
+    return this.dragList != null ? this.dragList.selectable : false;
   }
 
   get selected() {
@@ -99,7 +99,7 @@ export class DragItem extends DragElement {
 
   @Listen('dragend') handleDragEnd(event: HammerInput) {
     event.preventDefault();
-    this.manager.emitDragEnd();
+    this.manager.emitDragEnd(event);
     this.disposeDraggingNodes();
   }
 
@@ -125,6 +125,8 @@ export class DragItem extends DragElement {
   }
 
   private disposeDraggingNodes() {
+    if (this.draggingNodes == null) return;
+
     this.draggingNodes.forEach((node) => {
       node.instance.el.classList.remove(DRAGGING_CLASS);
       node.remove();

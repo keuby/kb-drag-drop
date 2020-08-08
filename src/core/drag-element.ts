@@ -1,11 +1,13 @@
-import { DragHTMLElement, EventType } from 'shared/types';
+import { DragHTMLElement, EventType, EventListenRecord } from 'shared/types';
 
 export class DragElement {
   el: DragHTMLElement<DragElement>;
   data: any;
+  private eventRecord: EventListenRecord;
 
   constructor(el: DragHTMLElement<DragElement>) {
     this.el = el;
+    this.eventRecord = Object.create(null);
   }
 
   noticeDirty(Clazz: any) {
@@ -24,7 +26,34 @@ export class DragElement {
     return null;
   }
 
-  dispatchEvent(event: EventType, detail: any) {}
+  on(callback: Function): void;
+  on(event: EventType, callback: Function): void;
+  on(event: EventType | Function, callback?: Function) {
+    if (typeof event === 'function') {
+      this.eventRecord['default'] = event;
+    } else {
+      this.eventRecord[event] = callback;
+    }
+  }
+
+  off(type?: EventType | 'default') {
+    if (type == null) type = 'default';
+    this.eventRecord[type] = null;
+  }
+
+  dispatchEvent(event: EventType, detail: any) {
+    let callback: Function, params: any[];
+    if (typeof this.eventRecord[event] === 'function') {
+      callback = this.eventRecord[event];
+      params = [detail];
+    } else if (typeof this.eventRecord['default'] === 'function') {
+      callback = this.eventRecord['default'];
+      params = [event, detail];
+    }
+    if (callback != null) {
+      callback.apply(this, params);
+    }
+  }
 }
 
 export abstract class DragCollection<T> extends DragElement {
