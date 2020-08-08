@@ -115,7 +115,7 @@ export class EventManager {
   }
 
   emitDragMove(event: HammerInput) {
-    if (this.draggingObserverRecords.length === 0) return;
+    if (this.draggingObserverRecords?.length === 0) return;
 
     const enteredRecord = this.draggingObserverRecords.find((record) => {
       return record.isEntered(event.center);

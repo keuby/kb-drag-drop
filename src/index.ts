@@ -1,3 +1,6 @@
+export * from 'shared/types';
+export * from 'shared/constants';
+
 import { VueConstructor } from 'vue';
 import { DragGroupDirective } from './directives/drag-group';
 import { DragItemDirective } from './directives/drag-item';

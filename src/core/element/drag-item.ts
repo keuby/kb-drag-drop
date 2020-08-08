@@ -87,6 +87,8 @@ export class DragItem extends DragElement {
   }
 
   @Listen('dragmove') handleDragMove(event: HammerInput) {
+    if (this.startPoint == null) return;
+
     const currentPoint = event.center;
     const deltaX = currentPoint.x - this.startPoint.x;
     const deltaY = currentPoint.y - this.startPoint.y;
@@ -99,6 +101,7 @@ export class DragItem extends DragElement {
 
   @Listen('dragend') handleDragEnd(event: HammerInput) {
     event.preventDefault();
+    this.startPoint = null;
     this.manager.emitDragEnd(event);
     this.disposeDraggingNodes();
   }

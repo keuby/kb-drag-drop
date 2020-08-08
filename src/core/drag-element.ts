@@ -22,6 +22,7 @@ export class DragElement {
       if (instance != null && instance instanceof Clazz) {
         return instance as T;
       }
+      el = el.parentElement;
     }
     return null;
   }

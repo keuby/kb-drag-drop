@@ -110,7 +110,9 @@
     }
 
     emitDragMove(event) {
-      if (this.draggingObserverRecords.length === 0) return;
+      var _a;
+
+      if (((_a = this.draggingObserverRecords) === null || _a === void 0 ? void 0 : _a.length) === 0) return;
       const enteredRecord = this.draggingObserverRecords.find(record => {
         return record.isEntered(event.center);
       });
@@ -315,6 +317,8 @@
         if (instance != null && instance instanceof Clazz) {
           return instance;
         }
+
+        el = el.parentElement;
       }
 
       return null;
@@ -561,6 +565,7 @@
     }
 
     handleDragMove(event) {
+      if (this.startPoint == null) return;
       const currentPoint = event.center;
       const deltaX = currentPoint.x - this.startPoint.x;
       const deltaY = currentPoint.y - this.startPoint.y;
@@ -573,6 +578,7 @@
 
     handleDragEnd(event) {
       event.preventDefault();
+      this.startPoint = null;
       this.manager.emitDragEnd(event);
       this.disposeDraggingNodes();
     }
