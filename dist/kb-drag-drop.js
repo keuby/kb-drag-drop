@@ -1,6 +1,6 @@
 /**
  * kb-drag-drop v1.0.0
- * release at 2020-8-8
+ * release at 2020/10/22
  * by Knight Chen
  * github https://github.com/keuby/kb-drag-drop#readme
  */
@@ -11,7 +11,9 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.KbDragDrop = {}, global.Hammer));
 }(this, (function (exports, Hammer) { 'use strict';
 
-  Hammer = Hammer && Object.prototype.hasOwnProperty.call(Hammer, 'default') ? Hammer['default'] : Hammer;
+  function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+
+  var Hammer__default = /*#__PURE__*/_interopDefaultLegacy(Hammer);
 
   const DRAG_ITEM_ATTR_NAME = 'kb-drag-item';
   const DRAG_GROUP_ATTR_NAME = 'kb-drag-group';
@@ -236,7 +238,7 @@
       if (this.el == null) return;
 
       if (record != null) {
-        this.__manager__ = new Hammer(this.el);
+        this.__manager__ = new Hammer__default['default'](this.el);
         const events = Object.keys(record).join(' ');
 
         this.__manager__.on(events, event => {
@@ -316,20 +318,20 @@
       instance && instance.makeDirty();
     }
 
-    search(Clazz) {
-      let el = this.el.parentElement;
+    search(Clazz, el = null) {
+      const currentElement = el || this.el.parentElement;
+      if (currentElement == null) return null;
+      let currentInstance = currentElement.__instance__ || currentElement.__instance_ref__;
 
-      while (el != null) {
-        const instance = el.instance;
-
-        if (instance != null && instance instanceof Clazz) {
-          return instance;
-        }
-
-        el = el.parentElement;
+      if (currentInstance != null && currentInstance instanceof Clazz) {
+        return currentInstance;
       }
 
-      return null;
+      const parentElement = el.parentElement;
+      if (parentElement == null) return null;
+      const parentInstance = this.search(Clazz, parentElement);
+      if (parentInstance != null) currentElement.__instance_ref__ = parentInstance;
+      return parentInstance;
     }
 
     on(event, callback) {
@@ -370,7 +372,15 @@
 
     get items() {
       if (this.dirty) {
-        this.initItems();
+        const itemList = [];
+
+        for (let i = 0; i < this.collection.length; i++) {
+          const item = this.collection[i];
+          itemList.push(item.__instance__);
+        }
+
+        this._items = itemList;
+        this.dirty = false;
       }
 
       return this._items;
@@ -378,18 +388,6 @@
 
     makeDirty() {
       this.dirty = true;
-    }
-
-    initItems() {
-      const itemList = [];
-
-      for (let i = 0; i < this.collection.length; i++) {
-        const item = this.collection[i];
-        itemList.push(item.instance);
-      }
-
-      this._items = itemList;
-      this.dirty = false;
     }
 
   }
@@ -410,18 +408,7 @@
 
     collect() {
       this.collection = this.el.querySelectorAll(`[${DRAG_LIST_ATTR_NAME}]`);
-      this.initItems();
     }
-
-    initItems() {
-      super.initItems();
-
-      for (const item of this.items) {
-        item.setGroupInstance(this);
-      }
-    }
-
-    destory() {}
 
   }
 
@@ -461,6 +448,9 @@
       } else if (this.dragListGroup != null) {
         return this.dragListGroup.name;
       }
+
+      this.dragListGroup = this.search(DragGroup);
+      return this.dragListGroup && this.dragListGroup.name;
     }
 
     setGroupInstance(ins) {
@@ -469,7 +459,6 @@
 
     collect() {
       this.collection = this.el.querySelectorAll(`[${DRAG_ITEM_ATTR_NAME}]`);
-      this.initItems();
     }
 
     handleDragEnter(event) {
@@ -478,14 +467,6 @@
 
     handleDragLeave(event) {
       this.el.classList.remove(DRAG_ENTERED_CLS);
-    }
-
-    initItems() {
-      super.initItems();
-
-      for (const item of this.items) {
-        item.setDragList(this);
-      }
     }
 
   };
@@ -503,6 +484,14 @@
     constructor(el) {
       super(el);
       this.el.setAttribute(DRAG_ITEM_ATTR_NAME, '');
+    }
+
+    get dragList() {
+      if (this._dragList == null) {
+        this._dragList = this.search(DragList);
+      }
+
+      return this._dragList;
     }
 
     get group() {
@@ -530,10 +519,6 @@
     toggleSelected() {
       this.el.classList.toggle(SELECTED_CLASS);
       this.manager.emitElementSelect(this, this.selected);
-    }
-
-    setDragList(dragList) {
-      this.dragList = dragList;
     }
 
     handleClick({
@@ -595,7 +580,7 @@
       const origin = item.el;
       const rect = origin.getBoundingClientRect();
       const cloned = item.el.cloneNode(true);
-      cloned.instance = item;
+      cloned.__instance__ = item;
       cloned.classList.add(INSERTED_CLASS);
       cloned.style.left = `${rect.left}px`;
       cloned.style.top = `${rect.top}px`;
@@ -604,7 +589,7 @@
 
     renderDraggingNodes() {
       this.draggingNodes.forEach(node => {
-        node.instance.el.classList.add(DRAGGING_CLASS);
+        node.__instance__.el.classList.add(DRAGGING_CLASS);
       });
       const fragment = document.createDocumentFragment();
       fragment.append(...this.draggingNodes);
@@ -614,7 +599,8 @@
     disposeDraggingNodes() {
       if (this.draggingNodes == null) return;
       this.draggingNodes.forEach(node => {
-        node.instance.el.classList.remove(DRAGGING_CLASS);
+        node.__instance__.el.classList.remove(DRAGGING_CLASS);
+
         node.remove();
       });
       this.draggingNodes = null;
@@ -637,22 +623,22 @@
   class DragGroupDirective {
     bind(el, binding) {
       const value = binding.value || {};
-      el.instance = new DragGroup(el);
-      el.instance.data = value.data;
+      el.__instance__ = new DragGroup(el);
+      el.__instance__.data = value.data;
 
       if (value.groupName != null && value.groupName !== '') {
-        el.instance.name = value.groupName;
+        el.__instance__.name = value.groupName;
       }
     }
 
     inserted(el) {
-      const instance = el.instance;
+      const instance = el.__instance__;
       instance.collect();
       initListener(instance);
     }
 
     unbind(el) {
-      disposeListener(el.instance);
+      disposeListener(el.__instance__);
     }
 
   }
@@ -660,12 +646,12 @@
   class DragItemDirective {
     bind(el, binding) {
       const options = binding.value || {};
-      el.instance = new DragItem(el);
-      el.instance.data = options.data;
+      el.__instance__ = new DragItem(el);
+      el.__instance__.data = options.data;
     }
 
     inserted(el) {
-      const instance = el.instance;
+      const instance = el.__instance__;
       instance.noticeDirty(DragList);
       initListener(instance, (type, detail) => {
         const event = new CustomEvent(type, {
@@ -676,7 +662,7 @@
     }
 
     unbind(el) {
-      disposeListener(el.instance);
+      disposeListener(el.__instance__);
     }
 
   }
@@ -688,11 +674,11 @@
       instance.data = options.data;
       instance.selectable = Boolean(options.selectable);
       instance.groupName = options.group;
-      el.instance = instance;
+      el.__instance__ = instance;
     }
 
     inserted(el) {
-      const instance = el.instance;
+      const instance = el.__instance__;
       instance.collect();
       instance.noticeDirty(DragGroup);
       initListener(instance, (type, detail) => {
@@ -704,7 +690,7 @@
     }
 
     unbind(el) {
-      disposeListener(el.instance);
+      disposeListener(el.__instance__);
     }
 
   }

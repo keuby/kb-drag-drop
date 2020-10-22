@@ -7,18 +7,18 @@ export class DragGroupDirective implements DirectiveOptions {
   bind(el: DragHTMLElement<DragGroup>, binding: DirectiveBinding) {
     const value = binding.value || {};
 
-    el.instance = new DragGroup(el);
-    el.instance.data = value.data;
+    el.__instance__ = new DragGroup(el);
+    el.__instance__.data = value.data;
     if (value.groupName != null && value.groupName !== '') {
-      el.instance.name = value.groupName;
+      el.__instance__.name = value.groupName;
     }
   }
   inserted(el: DragHTMLElement<DragGroup>) {
-    const instance = el.instance;
+    const instance = el.__instance__;
     instance.collect();
     initListener(instance);
   }
   unbind(el: DragHTMLElement<DragGroup>) {
-    disposeListener(el.instance);
+    disposeListener(el.__instance__);
   }
 }

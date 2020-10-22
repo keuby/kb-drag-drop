@@ -10,10 +10,10 @@ export class DragListDirective implements DirectiveOptions {
     instance.data = options.data;
     instance.selectable = Boolean(options.selectable);
     instance.groupName = options.group;
-    el.instance = instance;
+    el.__instance__ = instance;
   }
   inserted(el: DragHTMLElement<DragList>) {
-    const instance = el.instance;
+    const instance = el.__instance__;
     instance.collect();
     instance.noticeDirty(DragGroup);
     initListener(instance, (type: string, detail: EventDetail) => {
@@ -22,6 +22,6 @@ export class DragListDirective implements DirectiveOptions {
     });
   }
   unbind(el: DragHTMLElement<DragList>) {
-    disposeListener(el.instance);
+    disposeListener(el.__instance__);
   }
 }

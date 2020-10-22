@@ -14,5 +14,4 @@ export declare class DragList extends DragCollection<DragItem> {
     collect(): void;
     handleDragEnter(event: HammerInput): void;
     handleDragLeave(event: HammerInput): void;
-    protected initItems(): void;
 }

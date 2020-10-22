@@ -6,11 +6,11 @@ import { DragItem, DragList, initListener, disposeListener } from 'core';
 export class DragItemDirective implements DirectiveOptions {
   bind(el: DragHTMLElement<DragItem>, binding: DirectiveBinding) {
     const options = binding.value || {};
-    el.instance = new DragItem(el);
-    el.instance.data = options.data;
+    el.__instance__ = new DragItem(el);
+    el.__instance__.data = options.data;
   }
   inserted(el: DragHTMLElement<DragItem>) {
-    const instance = el.instance;
+    const instance = el.__instance__;
     instance.noticeDirty(DragList);
     initListener(instance, (type: string, detail: EventDetail) => {
       const event = new CustomEvent(type, { detail });
@@ -18,6 +18,6 @@ export class DragItemDirective implements DirectiveOptions {
     });
   }
   unbind(el: DragHTMLElement<DragItem>) {
-    disposeListener(el.instance);
+    disposeListener(el.__instance__);
   }
 }

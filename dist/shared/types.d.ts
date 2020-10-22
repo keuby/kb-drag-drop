@@ -1,5 +1,6 @@
 export interface DragHTMLElement<T> extends HTMLElement {
-    instance: T;
+    __instance__: T;
+    __instance_ref__: T;
 }
 export declare type EventComputeType = 'dragenter' | 'dragleave' | 'dragover' | 'drop' | 'select';
 export declare type EventOriginType = 'panstart' | 'panmove' | 'panend' | 'pancancel' | 'tap';

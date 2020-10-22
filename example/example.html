@@ -11,11 +11,15 @@
 
     <template id="app-template">
       <div id="app" v-drag-group>
-        <div v-drag-list="{ data: 'list1' }">
-          <p v-for="i in count" v-drag-item="{ data: { id: i } }"></p>
+        <div v-drag-list="{ data: 'list1', selectable: true }" @drop="eventConsole">
+          <p v-for="i in count" v-drag-item="{ data: { id: i } }">
+            测试内容测试内容测试内容测试内容测试内容测试内容测试内 {{i}}
+          </p>
         </div>
-        <div v-drag-list="{ data: 'list2' }">
-          <p v-for="i in count" v-drag-item="{ data: { id: i } }"></p>
+        <div v-drag-list="{ data: 'list2', selectable: true  }" @drop="eventConsole">
+          <p v-for="i in count" v-drag-item="{ data: { id: i } }">
+            测试内容测试内容测试内容测试内容测试内容测试内容测试内 {{i}}
+          </p>
         </div>
       </div>
     </template>
@@ -25,9 +29,9 @@
     <!-- <script>
       var hammerjs = Hammer;
     </script> -->
-    <script src="../dist/index.js"></script>
+    <script src="../dist/kb-drag-drop.js"></script>
     <script>
-      Vue.use(KbDragDrop);
+      Vue.use(KbDragDrop.default);
       const app = new Vue({
         el: '#app',
         template: '#app-template',

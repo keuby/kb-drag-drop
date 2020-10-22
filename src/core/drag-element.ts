@@ -15,16 +15,22 @@ export class DragElement {
     instance && instance.makeDirty();
   }
 
-  search<T extends DragCollection<any>>(Clazz: any) {
-    let el = this.el.parentElement;
-    while (el != null) {
-      const instance = (el as any).instance;
-      if (instance != null && instance instanceof Clazz) {
-        return instance as T;
-      }
-      el = el.parentElement;
+  search<T extends DragCollection<any>>(Clazz: any, el: DragHTMLElement<T> = null): T {
+    const currentElement = el || (this.el.parentElement as DragHTMLElement<T>);
+    if (currentElement == null) return null;
+
+    let currentInstance = currentElement.__instance__ || currentElement.__instance_ref__;
+    if (currentInstance != null && currentInstance instanceof Clazz) {
+      return currentInstance;
     }
-    return null;
+
+    const parentElement = el.parentElement as DragHTMLElement<T>;
+    if (parentElement == null) return null;
+
+    const parentInstance = this.search(Clazz, parentElement);
+    if (parentInstance != null) currentElement.__instance_ref__ = parentInstance;
+
+    return parentInstance;
   }
 
   on(callback: Function): void;
@@ -64,7 +70,13 @@ export abstract class DragCollection<T> extends DragElement {
 
   get items() {
     if (this.dirty) {
-      this.initItems();
+      const itemList: T[] = [];
+      for (let i = 0; i < this.collection.length; i++) {
+        const item = this.collection[i] as DragHTMLElement<T>;
+        itemList.push(item.__instance__);
+      }
+      this._items = itemList;
+      this.dirty = false;
     }
     return this._items;
   }
@@ -73,15 +85,5 @@ export abstract class DragCollection<T> extends DragElement {
 
   makeDirty() {
     this.dirty = true;
-  }
-
-  protected initItems() {
-    const itemList: T[] = [];
-    for (let i = 0; i < this.collection.length; i++) {
-      const item = this.collection[i] as DragHTMLElement<T>;
-      itemList.push(item.instance);
-    }
-    this._items = itemList;
-    this.dirty = false;
   }
 }

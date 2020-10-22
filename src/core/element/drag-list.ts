@@ -11,7 +11,14 @@ export const DRAG_ENTERED_CLS = DRAG_CLASS_PREFIX + '-entered';
 export class DragList extends DragCollection<DragItem> {
   groupName: string;
   selectable: boolean;
-  dragListGroup: DragGroup;
+  _dragListGroup: DragGroup;
+
+  get dragListGroup() {
+    if (this._dragListGroup == null) {
+      this._dragListGroup = this.search(DragGroup);
+    }
+    return this._dragListGroup;
+  }
 
   get group() {
     if (this.groupName != null) {
@@ -19,6 +26,7 @@ export class DragList extends DragCollection<DragItem> {
     } else if (this.dragListGroup != null) {
       return this.dragListGroup.name;
     }
+    return null;
   }
 
   constructor(el: DragHTMLElement<DragList>) {
@@ -27,13 +35,8 @@ export class DragList extends DragCollection<DragItem> {
     this.el.setAttribute(DRAG_LIST_ATTR_NAME, '');
   }
 
-  setGroupInstance(ins: DragGroup) {
-    this.dragListGroup = ins;
-  }
-
   collect() {
     this.collection = this.el.querySelectorAll(`[${DRAG_ITEM_ATTR_NAME}]`);
-    this.initItems();
   }
 
   @Listen('dragenter') handleDragEnter(event: HammerInput) {
@@ -42,12 +45,5 @@ export class DragList extends DragCollection<DragItem> {
 
   @Listen('dragleave') handleDragLeave(event: HammerInput) {
     this.el.classList.remove(DRAG_ENTERED_CLS);
-  }
-
-  protected initItems() {
-    super.initItems();
-    for (const item of this.items) {
-      item.setDragList(this);
-    }
   }
 }

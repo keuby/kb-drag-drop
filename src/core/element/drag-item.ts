@@ -10,13 +10,20 @@ export const INSERTED_CLASS = DRAG_CLASS_PREFIX + '-item-inserted';
 
 @EventListener
 export class DragItem extends DragElement {
-  dragList: DragList;
+  _dragList: DragList;
 
   startPoint: HammerPoint;
   wrapperEl: HTMLElement;
   draggingNodes: DragHTMLElement<DragItem>[];
 
   @Manager manager: EventManager;
+
+  get dragList() {
+    if (this._dragList == null) {
+      this._dragList = this.search(DragList);
+    }
+    return this._dragList;
+  }
 
   get group() {
     return this.dragList && this.dragList.group;
@@ -47,10 +54,6 @@ export class DragItem extends DragElement {
   toggleSelected() {
     this.el.classList.toggle(SELECTED_CLASS);
     this.manager.emitElementSelect(this, this.selected);
-  }
-
-  setDragList(dragList: DragList) {
-    this.dragList = dragList;
   }
 
   @Listen('click') handleClick({ srcEvent }: HammerInput) {
@@ -111,7 +114,7 @@ export class DragItem extends DragElement {
     const rect = origin.getBoundingClientRect();
 
     const cloned = item.el.cloneNode(true) as DragHTMLElement<DragItem>;
-    cloned.instance = item;
+    cloned.__instance__ = item;
     cloned.classList.add(INSERTED_CLASS);
     cloned.style.left = `${rect.left}px`;
     cloned.style.top = `${rect.top}px`;
@@ -120,7 +123,7 @@ export class DragItem extends DragElement {
 
   private renderDraggingNodes() {
     this.draggingNodes.forEach((node) => {
-      node.instance.el.classList.add(DRAGGING_CLASS);
+      node.__instance__.el.classList.add(DRAGGING_CLASS);
     });
     const fragment = document.createDocumentFragment();
     fragment.append(...this.draggingNodes);
@@ -131,7 +134,7 @@ export class DragItem extends DragElement {
     if (this.draggingNodes == null) return;
 
     this.draggingNodes.forEach((node) => {
-      node.instance.el.classList.remove(DRAGGING_CLASS);
+      node.__instance__.el.classList.remove(DRAGGING_CLASS);
       node.remove();
     });
     this.draggingNodes = null;

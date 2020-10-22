@@ -5,7 +5,7 @@ export declare class DragElement {
     private eventRecord;
     constructor(el: DragHTMLElement<DragElement>);
     noticeDirty(Clazz: any): void;
-    search<T extends DragCollection<any>>(Clazz: any): T;
+    search<T extends DragCollection<any>>(Clazz: any, el?: DragHTMLElement<T>): T;
     on(callback: Function): void;
     on(event: EventType, callback: Function): void;
     off(type?: EventType | 'default'): void;
@@ -18,5 +18,4 @@ export declare abstract class DragCollection<T> extends DragElement {
     get items(): T[];
     abstract collect(): void;
     makeDirty(): void;
-    protected initItems(): void;
 }

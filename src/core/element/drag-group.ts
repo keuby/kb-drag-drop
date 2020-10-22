@@ -14,15 +14,5 @@ export class DragGroup extends DragCollection<DragList> {
 
   collect() {
     this.collection = this.el.querySelectorAll(`[${DRAG_LIST_ATTR_NAME}]`);
-    this.initItems();
   }
-
-  protected initItems() {
-    super.initItems();
-    for (const item of this.items) {
-      item.setGroupInstance(this);
-    }
-  }
-
-  destory() {}
 }
