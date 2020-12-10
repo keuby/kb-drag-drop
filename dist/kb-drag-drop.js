@@ -1,6 +1,6 @@
 /**
- * kb-drag-drop v1.0.0
- * release at 2020/10/22
+ * kb-drag-drop v1.0.1
+ * release at 2020/12/10
  * by Knight Chen
  * github https://github.com/keuby/kb-drag-drop#readme
  */
@@ -327,7 +327,7 @@
         return currentInstance;
       }
 
-      const parentElement = el.parentElement;
+      const parentElement = currentElement.parentElement;
       if (parentElement == null) return null;
       const parentInstance = this.search(Clazz, parentElement);
       if (parentInstance != null) currentElement.__instance_ref__ = parentInstance;
@@ -442,6 +442,14 @@
       this.el.setAttribute(DRAG_LIST_ATTR_NAME, '');
     }
 
+    get dragListGroup() {
+      if (this._dragListGroup == null) {
+        this._dragListGroup = this.search(DragGroup);
+      }
+
+      return this._dragListGroup;
+    }
+
     get group() {
       if (this.groupName != null) {
         return this.groupName;
@@ -449,12 +457,7 @@
         return this.dragListGroup.name;
       }
 
-      this.dragListGroup = this.search(DragGroup);
-      return this.dragListGroup && this.dragListGroup.name;
-    }
-
-    setGroupInstance(ins) {
-      this.dragListGroup = ins;
+      return null;
     }
 
     collect() {

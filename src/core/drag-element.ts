@@ -24,7 +24,7 @@ export class DragElement {
       return currentInstance;
     }
 
-    const parentElement = el.parentElement as DragHTMLElement<T>;
+    const parentElement = currentElement.parentElement as DragHTMLElement<T>;
     if (parentElement == null) return null;
 
     const parentInstance = this.search(Clazz, parentElement);
